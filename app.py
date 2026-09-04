@@ -216,8 +216,8 @@ if uploaded_file is not None:
                     "Extracted Value": list(extracted_data.values())
                 }
                 
-               st.success("Extraction Complete!")
-               st.table(table_data) # Ini menjamin jadual sentiasa sama
+                st.success("Extraction Complete!")
+                st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
                 st.error(f"Error Happened!: {e}")
