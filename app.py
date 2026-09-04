@@ -4,6 +4,7 @@ import PyPDF2
 import json
 import time   # Tambah ini untuk fungsi rehat/tunggu
 import random # Tambah ini untuk pilih API key rawak
+import datetime # Tambah ini untuk fungsi tarikh
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
@@ -16,19 +17,35 @@ if "reset_key" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# Memori untuk kaunter harian
+if "daily_count" not in st.session_state:
+    st.session_state.daily_count = 0
+if "current_date" not in st.session_state:
+    st.session_state.current_date = datetime.date.today()
+
+# Reset kaunter automatik jika hari dah berganti
+if st.session_state.current_date != datetime.date.today():
+    st.session_state.daily_count = 0
+    st.session_state.current_date = datetime.date.today()
+
 # --- PAPARAN HISTORY DI SIDEBAR ---
 with st.sidebar:
     st.header("🕰️ Extraction History")
     if st.session_state.history:
-        # Paparkan senarai dari yang paling baru (terbalikkan senarai)
         for idx, item in enumerate(reversed(st.session_state.history)):
             st.write(f"• {item}")
         
         if st.button("🗑️ Clear History"):
             st.session_state.history = []
-            st.rerun() # Refresh page
+            st.rerun()
     else:
-        st.info("No MPN record yet.")
+        st.info("No MPN search history yet.")
+        
+    # Tambahan UI untuk paparan limit harian
+    st.divider()
+    st.subheader("📊 Kuota Harian")
+    st.progress(st.session_state.daily_count / 1500) # Bar visual
+    st.write(f"**{st.session_state.daily_count} / 1500** fail diekstrak hari ini.")
 
 # --- 2. SETTING API KEY (ROTATION) ---
 try:
@@ -213,6 +230,12 @@ if uploaded_file is not None:
                 }
                 
                 st.success("Extraction Complete!")
+                
+                # Tambah 1 pada kaunter setiap kali berjaya
+                st.session_state.daily_count += 1
+                
+                # --- SIMPAN KE HISTORY ---
+                rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
                 st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
