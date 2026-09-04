@@ -52,6 +52,7 @@ if uploaded_file is not None:
                 - Return strictly a valid JSON object with the keys above.
                 - The values must be strings. If data is missing, use "N/A".
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
+                - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
                 - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
                   [Resistance] [Tolerance] [Temperature coefficient] [Power] [Package EIA] [Additional Info]
                   * Note 1: If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
