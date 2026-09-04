@@ -16,6 +16,20 @@ if "reset_key" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# --- PAPARAN HISTORY DI SIDEBAR ---
+with st.sidebar:
+    st.header("🕰️ Extraction History")
+    if st.session_state.history:
+        # Paparkan senarai dari yang paling baru (terbalikkan senarai)
+        for idx, item in enumerate(reversed(st.session_state.history)):
+            st.write(f"• {item}")
+        
+        if st.button("🗑️ Clear History"):
+            st.session_state.history = []
+            st.rerun() # Refresh page
+    else:
+        st.info("No search record yet.")
+
 # --- 2. SETTING API KEY (ROTATION) ---
 try:
     # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
