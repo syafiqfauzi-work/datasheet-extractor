@@ -210,7 +210,6 @@ if uploaded_file is not None:
                 }
                 
                st.success("Extraction Complete!")
-                
                 # --- SIMPAN KE HISTORY ---
                 rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
                 # Pastikan tak simpan MPN yang sama berulang kali
