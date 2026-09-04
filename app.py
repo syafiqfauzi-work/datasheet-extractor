@@ -1,3 +1,21 @@
+import streamlit as st
+import google.generativeai as genai
+import PyPDF2
+
+# --- 1. SETTING TAJUK WEB ---
+st.set_page_config(page_title="Datasheet Extractor", page_icon="📄")
+st.title("📄 Datasheet AI Extractor")
+st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
+
+# --- 2. SETTING API KEY ---
+# Ia akan ambil API Key dari Streamlit Secrets (kita akan setup di Langkah 5)
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash') # Model yang pantas dan sesuai untuk teks
+except KeyError:
+    st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
+    st.stop()
+
 # --- 3 & 4. INPUT MPN, PROMPT & UPLOAD ---
 target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):")
 uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"])
