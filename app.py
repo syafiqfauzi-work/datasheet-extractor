@@ -7,34 +7,12 @@ st.set_page_config(page_title="Datasheet Extractor", page_icon="📄")
 st.title("📄 Datasheet AI Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
-# --- 2. SETTING API KEY & AUTO-SELECT MODEL ---
+# --- 2. SETTING API KEY & PENGGUNAAN MODEL TERKINI ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     
-    # Dapatkan senarai semua model yang disokong oleh API Key anda
-    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-    
-    # Paparkan di tepi (sidebar) untuk rujukan kita
-    with st.sidebar:
-        st.write("Senarai model yang dibenarkan:")
-        for m in available_models:
-            st.code(m)
-            
-    # Pilih model secara automatik berdasarkan apa yang wujud
-    if 'models/gemini-1.5-flash' in available_models:
-        model_name = 'gemini-1.5-flash'
-    elif 'models/gemini-1.5-flash-latest' in available_models:
-        model_name = 'gemini-1.5-flash-latest'
-    elif 'models/gemini-pro' in available_models:
-        model_name = 'gemini-pro'
-    elif 'models/gemini-1.0-pro' in available_models:
-        model_name = 'gemini-1.0-pro'
-    else:
-        # Ambil model pertama dalam senarai jika semua di atas tiada
-        model_name = available_models[0].replace('models/', '') 
-        
-    model = genai.GenerativeModel(model_name)
-    st.sidebar.success(f"Sistem menggunakan: {model_name}")
+    # Menggunakan model gemini-3.6-flash seperti yang diminta oleh sistem Google
+    model = genai.GenerativeModel('gemini-3.6-flash')
     
 except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
@@ -42,7 +20,7 @@ except KeyError:
 except Exception as e:
     st.error(f"Ralat API: {e}")
     st.stop()
-
+    
 # --- 3 & 4. INPUT MPN, PROMPT & UPLOAD ---
 target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):")
 uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"])
