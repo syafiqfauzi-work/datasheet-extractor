@@ -2,24 +2,24 @@ import streamlit as st
 import google.generativeai as genai
 import PyPDF2
 import json
+import time   # Tambah ini untuk fungsi rehat/tunggu
+import random # Tambah ini untuk pilih API key rawak
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="R* Datasheet Extractor", page_icon="📄")
 st.title("📄 R* Datasheet Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
-# --- 2. SETTING API KEY & PENGGUNAAN MODEL TERKINI ---
+# --- 2. SETTING API KEY (ROTATION) ---
 try:
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
+    api_keys = st.secrets["GEMINI_API_KEY"].split(",")
+    selected_key = random.choice(api_keys).strip()
+    genai.configure(api_key=selected_key)
     
-    # Menggunakan model gemini-3.6-flash seperti yang diminta oleh sistem Google
     model = genai.GenerativeModel('gemini-3.6-flash')
-    
 except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
-    st.stop()
-except Exception as e:
-    st.error(f"Ralat API: {e}")
     st.stop()
     
 # --- 3 & 4. INPUT MPN, PROMPT & UPLOAD ---
@@ -58,14 +58,39 @@ if uploaded_file is not None:
                 {pdf_text}
                 """
                 
-                # Paksa output JSON dan konsisten penuh (temperature = 0)
-                response = model.generate_content(
-                    full_prompt,
-                    generation_config={
-                        "temperature": 0.0,
-                        "response_mime_type": "application/json"
-                    }
-                )
+              # --- SISTEM AUTO-RETRY UNTUK ELAK LIMIT ---
+                max_retries = 3
+                retry_delay = 15 # saat
+                
+                extracted_data = None
+                
+                for attempt in range(max_retries):
+                    try:
+                        response = model.generate_content(
+                            full_prompt,
+                            generation_config={
+                                "temperature": 0.0,
+                                "response_mime_type": "application/json"
+                            }
+                        )
+                        extracted_data = json.loads(response.text)
+                        break # Berjaya! Keluar dari loop
+                        
+                    except Exception as e:
+                        if "429" in str(e) or "Quota" in str(e):
+                            if attempt < max_retries - 1:
+                                st.warning(f"Bertenang, limit API dicapai. Sistem auto-cuba semula dalam {retry_delay} saat... (Percubaan {attempt+1}/{max_retries})")
+                                time.sleep(retry_delay)
+                            else:
+                                st.error("Gagal selepas 3 percubaan. Sila rehat 1 minit dan cuba lagi.")
+                                st.stop() # Hentikan proses supaya tak keluar NameError
+                        else:
+                            st.error(f"Ralat API: {e}")
+                            st.stop()
+                
+                # Jika sistem gagal sepenuhnya selepas 3 kali, pastikan kod berhenti
+                if not extracted_data:
+                    st.stop()
                 
                 # Tukar JSON dari AI kepada jadual Streamlit
                 extracted_data = json.loads(response.text)
