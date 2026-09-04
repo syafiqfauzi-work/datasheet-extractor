@@ -40,6 +40,7 @@ if uploaded_file is not None:
                 Review the provided datasheet text and accurately extract the requested information. 
                 
                 Extract these exact keys:
+                "Designation",
                 "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
                 "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
                 "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
@@ -49,9 +50,13 @@ if uploaded_file is not None:
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
-                - The values must be strings.
-                - If data is missing, use the value "N/A".
-                - FOR THE "Function" KEY: You MUST select ONLY ONE of the following options based on the datasheet: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film". If none apply, output "N/A". Do not write any other text.
+                - The values must be strings. If data is missing, use "N/A".
+                - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
+                - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
+                  [Resistance] [Tolerance] [Temperature coefficient] [Power] [Package EIA] [Additional Info]
+                  * Note 1: If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
+                  * Note 2: For [Additional Info], scan the datasheet and append these tags if applicable (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ.
+                  * Example output: 3R6 1% 100ppm 0.250W 1206 PP/HP
                 
                 Datasheet Text:
                 -----------------
@@ -95,13 +100,15 @@ if uploaded_file is not None:
                 # Tukar JSON dari AI kepada jadual Streamlit
                 extracted_data = json.loads(response.text)
                 
+                # Asingkan Designation supaya tak masuk dalam jadual
+                designation_text = extracted_data.pop("Designation", "N/A")
+                
                 # Susun data untuk paparan cantik dengan lajur Unit berasingan
                 specs = []
                 values = []
                 units = []
                 
                 for key, val in extracted_data.items():
-                    # Pisahkan nama dan unit berdasarkan key yang kita dah tetapkan
                     if "(°C)" in key:
                         specs.append(key.replace(" (°C)", ""))
                         units.append("°C")
@@ -125,7 +132,7 @@ if uploaded_file is not None:
                         units.append("ppm/K")
                     else:
                         specs.append(key)
-                        units.append("-") # Letak sengkang jika tiada unit
+                        units.append("-") 
                         
                     values.append(val)
                 
@@ -136,7 +143,12 @@ if uploaded_file is not None:
                 }
                 
                 st.success("Extraction Complete!")
-                st.table(table_data) 
+                
+                # Paparkan Designation di atas jadual
+                st.info(f"**Standardized Designation:** {designation_text}")
+                
+                # Paparkan Jadual
+                st.table(table_data)
                 
             except Exception as e:
                 st.error(f"Error happened!: {e}")
