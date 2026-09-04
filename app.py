@@ -79,13 +79,13 @@ if uploaded_file is not None:
                     except Exception as e:
                         if "429" in str(e) or "Quota" in str(e):
                             if attempt < max_retries - 1:
-                                st.warning(f"Bertenang, limit API dicapai. Sistem auto-cuba semula dalam {retry_delay} saat... (Percubaan {attempt+1}/{max_retries})")
+                                st.warning(f"Relax, exceed API limi. System will auto try in {retry_delay} seconds... (Trial {attempt+1}/{max_retries})")
                                 time.sleep(retry_delay)
                             else:
-                                st.error("Gagal selepas 3 percubaan. Sila rehat 1 minit dan cuba lagi.")
+                                st.error("Fail after 3 trials. Rilex & wait for a minute, then try again.")
                                 st.stop() # Hentikan proses supaya tak keluar NameError
                         else:
-                            st.error(f"Ralat API: {e}")
+                            st.error(f"API Error: {e}")
                             st.stop()
                 
                 # Jika sistem gagal sepenuhnya selepas 3 kali, pastikan kod berhenti
