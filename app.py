@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 import PyPDF2
+import json
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="R* Datasheet Extractor", page_icon="📄")
@@ -29,64 +30,53 @@ if uploaded_file is not None:
     if st.button("Extract Data", type="primary"):
         with st.spinner("Reading PDF and extracting data... Please wait."):
             try:
-                # Baca fail PDF
                 reader = PyPDF2.PdfReader(uploaded_file)
-                pdf_text = ""
-                for page in reader.pages:
-                    if page.extract_text():
-                        pdf_text += page.extract_text() + "\n"
+                pdf_text = "".join([page.extract_text() + "\n" for page in reader.pages if page.extract_text()])
                 
-                # Setup arahan MPN dinamik
                 mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
                 
-                # Gabungkan prompt dengan teks PDF
                 full_prompt = f"""
                 Act as an expert electronics engineer. {mpn_instruction}
-                Review the provided datasheet text and accurately extract the following information. 
-                If a specification varies by part number, ensure you only extract the value corresponding to the requested MPN.
-
-                --- Temperature ---
-                1. Operating Temperature (Max) in °C
-                2. Operating Temperature (Min) in °C
-                3. Storage Temperature (Max) in °C
-                4. Storage Temperature (Min) in °C
-
-                --- Physical & Dimensions ---
-                5. Length (mm)
-                6. Width (mm)
-                7. Height (Max) 
-                8. Height (mm)
-                9. Package Type
-                10. Package Type (EIA)
-                11. Pitch (Footprint) (mm)
-                12. Number of Pins
-
-                --- Electrical Specifications ---
-                13. Resistance (Ohm)
-                14. Tolerance (%)
-                15. Voltage (V)
-                16. Function (Choose from: Thin Film / Thick Film / Metal Foil / Wire-Wound / Carbon Film)
-                17. Power Consumption (W)
-                18. Temperature Coefficient (ppm/K)
+                Review the provided datasheet text and accurately extract the requested information. 
+                
+                Extract these exact keys:
+                "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
+                "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
+                "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
+                "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
+                "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
+                "Power Consumption (W)", "Temperature Coefficient (ppm/K)"
 
                 Important Instructions:
-                - Provide the final output as a Markdown Table.
-                - If a specific piece of information is not clearly stated for the requested MPN, write "N/A". Do not guess or hallucinate data.
+                - Return strictly a valid JSON object with the keys above.
+                - The values must be strings.
+                - If data is missing, use the value "N/A".
                 
                 Datasheet Text:
                 -----------------
                 {pdf_text}
                 """
                 
-                # Tambah generation_config untuk set temperature ke 0 (maksimum konsisten)
+                # Paksa output JSON dan konsisten penuh (temperature = 0)
                 response = model.generate_content(
-                full_prompt,
-                generation_config={"temperature": 0.0}
+                    full_prompt,
+                    generation_config={
+                        "temperature": 0.0,
+                        "response_mime_type": "application/json"
+                    }
                 )
                 
-                # Papar hasil
+                # Tukar JSON dari AI kepada jadual Streamlit
+                extracted_data = json.loads(response.text)
+                
+                # Susun data untuk paparan cantik
+                table_data = {
+                    "Specification": list(extracted_data.keys()),
+                    "Extracted Value": list(extracted_data.values())
+                }
+                
                 st.success("Extraction Complete!")
-                st.markdown(response.text)
+                st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
-                st.error(f"Error: {e}")
+                st.error(f"Error happened!: {e}")
