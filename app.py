@@ -130,11 +130,18 @@ if uploaded_file is not None:
                 # Tukar JSON dari AI kepada jadual Streamlit
                 extracted_data = json.loads(response.text)
                 
-                # Asingkan Designation dan paparkan di atas (huruf besar)
+               # Asingkan Designation dan paparkan di atas (huruf besar)
                 designation_text = extracted_data.pop("Designation", "N/A").upper()
-                st.success("Extraction Complete!")
-                st.info(f"**Standardized Designation:** {designation_text}")
                 
+                st.success("Extraction Complete!")
+                
+                # --- SIMPAN KE HISTORY ---
+                rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
+                if rekod_mpn not in st.session_state.history:
+                    st.session_state.history.append(rekod_mpn)
+                
+                st.info(f"**Standardized Designation:** {designation_text}")
+                                
                 # --- DEFINISI KATEGORI TAB ---
                 keys_top = [
                     "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
@@ -210,14 +217,7 @@ if uploaded_file is not None:
                 }
                 
                st.success("Extraction Complete!")
-                # --- SIMPAN KE HISTORY ---
-                rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
-                # Pastikan tak simpan MPN yang sama berulang kali
-                if rekod_mpn not in st.session_state.history:
-                    st.session_state.history.append(rekod_mpn)
-                
-                st.info(f"**Standardized Designation:** {designation_text}")
-                st.table(table_data) # Ini menjamin jadual sentiasa sama
+               st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
                 st.error(f"Error Happened!: {e}")
