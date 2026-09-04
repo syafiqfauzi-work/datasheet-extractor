@@ -6,8 +6,8 @@ import time   # Tambah ini untuk fungsi rehat/tunggu
 import random # Tambah ini untuk pilih API key rawak
 
 # --- 1. SETTING TAJUK WEB ---
-st.set_page_config(page_title="R* Datasheet Extractor", page_icon="📄")
-st.title("📄 R* Datasheet Extractor")
+st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
+st.title("📄 RG Datasheet Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
 # --- 2. SETTING API KEY (ROTATION) ---
