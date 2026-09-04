@@ -101,7 +101,7 @@ if uploaded_file is not None:
                 extracted_data = json.loads(response.text)
                 
                 # Asingkan Designation supaya tak masuk dalam jadual
-                designation_text = extracted_data.pop("Designation", "N/A")
+                designation_text = extracted_data.pop("Designation", "N/A").upper()
                 
                 # Susun data untuk paparan cantik dengan lajur Unit berasingan
                 specs = []
