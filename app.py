@@ -100,58 +100,78 @@ if uploaded_file is not None:
                 # Tukar JSON dari AI kepada jadual Streamlit
                 extracted_data = json.loads(response.text)
                 
-                # Asingkan Designation supaya tak masuk dalam jadual
+                # Asingkan Designation dan paparkan di atas (huruf besar)
                 designation_text = extracted_data.pop("Designation", "N/A").upper()
-                
-                # Susun data untuk paparan cantik dengan lajur Unit berasingan
-                specs = []
-                values = []
-                units = []
-                
-                for key, val in extracted_data.items():
-                    if "(°C)" in key:
-                        specs.append(key.replace(" (°C)", ""))
-                        units.append("°C")
-                    elif "(mm)" in key:
-                        specs.append(key.replace(" (mm)", ""))
-                        units.append("mm")
-                    elif "(Ohm)" in key:
-                        specs.append(key.replace(" (Ohm)", ""))
-                        units.append("Ohm")
-                    elif "(%)" in key:
-                        specs.append(key.replace(" (%)", ""))
-                        units.append("%")
-                    elif "(V)" in key:
-                        specs.append(key.replace(" (V)", ""))
-                        units.append("V")
-                    elif "(W)" in key:
-                        specs.append(key.replace(" (W)", ""))
-                        units.append("W")
-                    elif "(ppm/K)" in key:
-                        specs.append(key.replace(" (ppm/K)", ""))
-                        units.append("ppm/K")
-                    else:
-                        specs.append(key)
-                        units.append("-") 
-                        
-                    values.append(val)
-                
-                table_data = {
-                    "Specification": specs,
-                    "Extracted Value": values,
-                    "Unit": units
-                }
-                
                 st.success("Extraction Complete!")
-                
-                # Paparkan Designation di atas jadual
                 st.info(f"**Standardized Designation:** {designation_text}")
                 
-                # Paparkan Jadual
-                st.table(table_data)
+                # --- DEFINISI KATEGORI TAB ---
+                keys_top = [
+                    "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
+                    "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"
+                ]
+                
+                keys_library = [
+                    "Length (mm)", "Width (mm)", "Height (Max)", 
+                    "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"
+                ]
+                
+                keys_techn = [
+                    "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
+                    "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"
+                ]
+
+                # Fungsi untuk susun data ke dalam jadual berserta lajur Unit
+                def build_table(keys_list, data_dict):
+                    specs, values, units = [], [], []
+                    for key in keys_list:
+                        val = data_dict.get(key, "N/A") # Ambil nilai dari JSON
+                        
+                        # Asingkan Unit
+                        if "(°C)" in key:
+                            specs.append(key.replace(" (°C)", ""))
+                            units.append("°C")
+                        elif "(mm)" in key:
+                            specs.append(key.replace(" (mm)", ""))
+                            units.append("mm")
+                        elif "(Ohm)" in key:
+                            specs.append(key.replace(" (Ohm)", ""))
+                            units.append("Ohm")
+                        elif "(%)" in key:
+                            specs.append(key.replace(" (%)", ""))
+                            units.append("%")
+                        elif "(V)" in key:
+                            specs.append(key.replace(" (V)", ""))
+                            units.append("V")
+                        elif "(W)" in key:
+                            specs.append(key.replace(" (W)", ""))
+                            units.append("W")
+                        elif "(ppm/K)" in key:
+                            specs.append(key.replace(" (ppm/K)", ""))
+                            units.append("ppm/K")
+                        else:
+                            specs.append(key)
+                            units.append("-")
+                            
+                        values.append(val)
+                        
+                    return {"Specification": specs, "Extracted Value": values, "Unit": units}
+
+                # --- BINA TAB DI STREAMLIT ---
+                tab1, tab2, tab3 = st.tabs(["Top", "Library", "Techn.Parameter"])
+                
+                with tab1:
+                    st.table(build_table(keys_top, extracted_data))
+                
+                with tab2:
+                    st.table(build_table(keys_library, extracted_data))
+                    
+                with tab3:
+                    st.table(build_table(keys_techn, extracted_data))
                 
             except Exception as e:
-                st.error(f"Error happened!: {e}")
+                # Paparkan ralat jika ada (termasuk sistem retry)
+                st.error(f"Error Happened!: {e}")
                 
                 # Susun data untuk paparan cantik
                 table_data = {
@@ -163,4 +183,4 @@ if uploaded_file is not None:
                 st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
-                st.error(f"Error happened!: {e}")
+                st.error(f"Error Happened!: {e}")
