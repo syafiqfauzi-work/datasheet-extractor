@@ -51,6 +51,7 @@ if uploaded_file is not None:
                 - Return strictly a valid JSON object with the keys above.
                 - The values must be strings.
                 - If data is missing, use the value "N/A".
+                - FOR THE "Function" KEY: You MUST select ONLY ONE of the following options based on the datasheet: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film". If none apply, output "N/A". Do not write any other text.
                 
                 Datasheet Text:
                 -----------------
