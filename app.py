@@ -11,7 +11,7 @@ st.write("Upload a datasheet (PDF) and the AI will extract the key specification
 # Ia akan ambil API Key dari Streamlit Secrets (kita akan setup di Langkah 5)
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash-latest') # Model yang pantas dan sesuai untuk teks
+    model = genai.GenerativeModel('gemini-pro') # Model yang pantas dan sesuai untuk teks
 except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
     st.stop()
