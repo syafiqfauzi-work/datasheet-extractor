@@ -57,10 +57,6 @@ uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=
 
 if uploaded_file is not None:
     if st.button("Extract Data", type="primary"):
-# ... (kekalkan kod with st.spinner dan try/except di bawah ini macam biasa) ...
-
-if uploaded_file is not None:
-    if st.button("Extract Data", type="primary"):
         with st.spinner("Reading PDF and extracting data... Please wait."):
             try:
                 reader = PyPDF2.PdfReader(uploaded_file)
