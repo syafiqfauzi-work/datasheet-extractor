@@ -43,9 +43,9 @@ with st.sidebar:
         
     # Tambahan UI untuk paparan limit harian
     st.divider()
-    st.subheader("📊 Kuota Harian")
+    st.subheader("📊 Daily Limit")
     st.progress(st.session_state.daily_count / 1500) # Bar visual
-    st.write(f"**{st.session_state.daily_count} / 1500** fail diekstrak hari ini.")
+    st.write(f"**{st.session_state.daily_count} / 1500** data extracted today.")
 
 # --- 2. SETTING API KEY (ROTATION) ---
 try:
