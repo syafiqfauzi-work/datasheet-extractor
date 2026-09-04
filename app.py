@@ -4,7 +4,7 @@ import PyPDF2
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="R* Datasheet Extractor", page_icon="📄")
-st.title("📄 Datasheet Extractor for Commodity R*")
+st.title("📄 R* Datasheet Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
 # --- 2. SETTING API KEY & PENGGUNAAN MODEL TERKINI ---
