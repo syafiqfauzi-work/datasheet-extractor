@@ -42,12 +42,10 @@ except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
     st.stop()
     
-# --- 3 & 4. INPUT MPN, UPLOAD & RESET ---
-col1, col2 = st.columns([4, 1])
-with col2:
-    if st.button("🔄 Reset"):
-        st.session_state.reset_key += 1
-        st.rerun() # Refresh page untuk kosongkan form
+# --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
+if st.button("🔄 Reset"):
+    st.session_state.reset_key += 1
+    st.rerun() # Refresh page untuk kosongkan form
 
 # Perhatikan kita tambah parameter `key` menggunakan reset_key
 target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
