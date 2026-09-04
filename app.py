@@ -44,8 +44,6 @@ except KeyError:
     
 # --- 3 & 4. INPUT MPN, UPLOAD & RESET ---
 col1, col2 = st.columns([4, 1])
-with col1:
-    st.write("Sila masukkan MPN dan muat naik PDF.")
 with col2:
     if st.button("🔄 Reset"):
         st.session_state.reset_key += 1
