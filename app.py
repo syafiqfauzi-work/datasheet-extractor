@@ -10,6 +10,26 @@ st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
 st.title("📄 RG Datasheet Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
+# --- 1.5 INISIALISASI MEMORI (SESSION STATE) ---
+if "reset_key" not in st.session_state:
+    st.session_state.reset_key = 0
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# --- PAPARAN HISTORY DI SIDEBAR ---
+with st.sidebar:
+    st.header("🕰️ Extraction History")
+    if st.session_state.history:
+        # Paparkan senarai dari yang paling baru (terbalikkan senarai)
+        for idx, item in enumerate(reversed(st.session_state.history)):
+            st.write(f"• {item}")
+        
+        if st.button("🗑️ Clear History"):
+            st.session_state.history = []
+            st.rerun() # Refresh page
+    else:
+        st.info("No MPN record yet.")
+
 # --- 2. SETTING API KEY (ROTATION) ---
 try:
     # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
@@ -22,9 +42,22 @@ except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
     st.stop()
     
-# --- 3 & 4. INPUT MPN, PROMPT & UPLOAD ---
-target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):")
-uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"])
+# --- 3 & 4. INPUT MPN, UPLOAD & RESET ---
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.write("Sila masukkan MPN dan muat naik PDF.")
+with col2:
+    if st.button("🔄 Reset"):
+        st.session_state.reset_key += 1
+        st.rerun() # Refresh page untuk kosongkan form
+
+# Perhatikan kita tambah parameter `key` menggunakan reset_key
+target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
+uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
+
+if uploaded_file is not None:
+    if st.button("Extract Data", type="primary"):
+# ... (kekalkan kod with st.spinner dan try/except di bawah ini macam biasa) ...
 
 if uploaded_file is not None:
     if st.button("Extract Data", type="primary"):
@@ -180,7 +213,15 @@ if uploaded_file is not None:
                     "Extracted Value": list(extracted_data.values())
                 }
                 
-                st.success("Extraction Complete!")
+               st.success("Extraction Complete!")
+                
+                # --- SIMPAN KE HISTORY ---
+                rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
+                # Pastikan tak simpan MPN yang sama berulang kali
+                if rekod_mpn not in st.session_state.history:
+                    st.session_state.history.append(rekod_mpn)
+                
+                st.info(f"**Standardized Designation:** {designation_text}")
                 st.table(table_data) # Ini menjamin jadual sentiasa sama
                 
             except Exception as e:
