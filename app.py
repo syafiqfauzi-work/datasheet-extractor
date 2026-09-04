@@ -70,6 +70,52 @@ if uploaded_file is not None:
                 # Tukar JSON dari AI kepada jadual Streamlit
                 extracted_data = json.loads(response.text)
                 
+                # Susun data untuk paparan cantik dengan lajur Unit berasingan
+                specs = []
+                values = []
+                units = []
+                
+                for key, val in extracted_data.items():
+                    # Pisahkan nama dan unit berdasarkan key yang kita dah tetapkan
+                    if "(°C)" in key:
+                        specs.append(key.replace(" (°C)", ""))
+                        units.append("°C")
+                    elif "(mm)" in key:
+                        specs.append(key.replace(" (mm)", ""))
+                        units.append("mm")
+                    elif "(Ohm)" in key:
+                        specs.append(key.replace(" (Ohm)", ""))
+                        units.append("Ohm")
+                    elif "(%)" in key:
+                        specs.append(key.replace(" (%)", ""))
+                        units.append("%")
+                    elif "(V)" in key:
+                        specs.append(key.replace(" (V)", ""))
+                        units.append("V")
+                    elif "(W)" in key:
+                        specs.append(key.replace(" (W)", ""))
+                        units.append("W")
+                    elif "(ppm/K)" in key:
+                        specs.append(key.replace(" (ppm/K)", ""))
+                        units.append("ppm/K")
+                    else:
+                        specs.append(key)
+                        units.append("-") # Letak sengkang jika tiada unit
+                        
+                    values.append(val)
+                
+                table_data = {
+                    "Specification": specs,
+                    "Extracted Value": values,
+                    "Unit": units
+                }
+                
+                st.success("Extraction Complete!")
+                st.table(table_data) 
+                
+            except Exception as e:
+                st.error(f"Error happened!: {e}")
+                
                 # Susun data untuk paparan cantik
                 table_data = {
                     "Specification": list(extracted_data.keys()),
