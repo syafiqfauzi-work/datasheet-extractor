@@ -78,8 +78,11 @@ if uploaded_file is not None:
                 {pdf_text}
                 """
                 
-                # Hantar ke Gemini AI
-                response = model.generate_content(full_prompt)
+                # Tambah generation_config untuk set temperature ke 0 (maksimum konsisten)
+                response = model.generate_content(
+                full_prompt,
+                generation_config={"temperature": 0.0}
+                )
                 
                 # Papar hasil
                 st.success("Extraction Complete!")
