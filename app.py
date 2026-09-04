@@ -7,13 +7,40 @@ st.set_page_config(page_title="Datasheet Extractor", page_icon="📄")
 st.title("📄 Datasheet AI Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
-# --- 2. SETTING API KEY ---
-# Ia akan ambil API Key dari Streamlit Secrets (kita akan setup di Langkah 5)
+# --- 2. SETTING API KEY & AUTO-SELECT MODEL ---
 try:
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    model = genai.GenerativeModel('gemini-1.5-flash') # Model yang pantas dan sesuai untuk teks
+    
+    # Dapatkan senarai semua model yang disokong oleh API Key anda
+    available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+    
+    # Paparkan di tepi (sidebar) untuk rujukan kita
+    with st.sidebar:
+        st.write("Senarai model yang dibenarkan:")
+        for m in available_models:
+            st.code(m)
+            
+    # Pilih model secara automatik berdasarkan apa yang wujud
+    if 'models/gemini-1.5-flash' in available_models:
+        model_name = 'gemini-1.5-flash'
+    elif 'models/gemini-1.5-flash-latest' in available_models:
+        model_name = 'gemini-1.5-flash-latest'
+    elif 'models/gemini-pro' in available_models:
+        model_name = 'gemini-pro'
+    elif 'models/gemini-1.0-pro' in available_models:
+        model_name = 'gemini-1.0-pro'
+    else:
+        # Ambil model pertama dalam senarai jika semua di atas tiada
+        model_name = available_models[0].replace('models/', '') 
+        
+    model = genai.GenerativeModel(model_name)
+    st.sidebar.success(f"Sistem menggunakan: {model_name}")
+    
 except KeyError:
     st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
+    st.stop()
+except Exception as e:
+    st.error(f"Ralat API: {e}")
     st.stop()
 
 # --- 3 & 4. INPUT MPN, PROMPT & UPLOAD ---
