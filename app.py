@@ -196,8 +196,10 @@ if uploaded_file is not None:
                 all_data = build_table(all_keys, extracted_data)
                 
                 csv_buffer = io.StringIO()
+                csv_buffer.write('\ufeff') # Tambah BOM (Byte Order Mark) supaya Excel baca simbol dengan betul
+                
                 writer = csv.writer(csv_buffer)
-                writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) # Header Baharu
+                writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) 
                 
                 for i in range(len(all_data["Specification"])):
                     writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Page"][i], all_data["Source Evidence"][i]])
