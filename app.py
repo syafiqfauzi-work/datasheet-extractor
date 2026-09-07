@@ -67,7 +67,7 @@ if uploaded_file is not None:
                 "Power Consumption (W)", "Temperature Coefficient (ppm/K)",
                 "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
                 "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
-                "Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"
+                "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
@@ -81,7 +81,7 @@ if uploaded_file is not None:
                 - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
                 - FOR "ESS Suitable": Select ONLY ONE: "ESS released" or "not ESS released".
                 - FOR "Washability" and "Varnishability": Select ONLY "Yes" or "No".
-                - FOR REFLOW ("Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"): Extract the literal numerical value and its unit (e.g., "3 cycles", "40 seconds", "260 °C").
+                - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
                 [GENERAL RULES]
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
@@ -167,7 +167,7 @@ if uploaded_file is not None:
                 # --- DEFINISI KATEGORI ---
                 keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
                 keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
-                keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"]
+                keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
                 keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"]
 
                 def build_table(keys_list, data_dict):
@@ -190,6 +190,8 @@ if uploaded_file is not None:
                         elif "(V)" in key: key, unit_str = key.replace(" (V)", ""), "V"
                         elif "(W)" in key: key, unit_str = key.replace(" (W)", ""), "W"
                         elif "(ppm/K)" in key: key, unit_str = key.replace(" (ppm/K)", ""), "ppm/K"
+                        elif "(s)" in key: key, unit_str = key.replace(" (s)", ""), "s"
+                        elif "(cycles)" in key: key, unit_str = key.replace(" (cycles)", ""), "cycles"
                         
                         specs.append(key)
                         values.append(val)
