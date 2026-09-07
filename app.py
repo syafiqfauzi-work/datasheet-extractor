@@ -2,10 +2,10 @@ import streamlit as st
 import google.generativeai as genai
 import PyPDF2
 import json
-import time   # Tambah ini untuk fungsi rehat/tunggu
-import random # Tambah ini untuk pilih API key rawak
-import csv # Tambah ini
-import io  # Tambah ini
+import time   
+import random 
+import csv 
+import io  
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
@@ -22,13 +22,12 @@ if "history" not in st.session_state:
 with st.sidebar:
     st.header("🕰️ Extraction History")
     if st.session_state.history:
-        # Paparkan senarai dari yang paling baru (terbalikkan senarai)
         for idx, item in enumerate(reversed(st.session_state.history)):
             st.write(f"• {item}")
         
         if st.button("🗑️ Clear History"):
             st.session_state.history = []
-            st.rerun() # Refresh page
+            st.rerun() 
     else:
         st.info("No search record yet.")
 
@@ -36,9 +35,8 @@ with st.sidebar:
 # --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
 if st.button("🔄 Reset"):
     st.session_state.reset_key += 1
-    st.rerun() # Refresh page untuk kosongkan form
+    st.rerun() 
 
-# Perhatikan kita tambah parameter `key` menggunakan reset_key
 target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
 uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
 
@@ -47,7 +45,6 @@ if uploaded_file is not None:
         with st.spinner("Reading PDF and extracting data... Please wait."):
             try:
                 reader = PyPDF2.PdfReader(uploaded_file)
-                # Baca PDF dan letak penanda muka surat
                 pdf_text = ""
                 for i, page in enumerate(reader.pages):
                     text = page.extract_text()
@@ -67,12 +64,26 @@ if uploaded_file is not None:
                 "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
                 "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
                 "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
-                "Power Consumption (W)", "Temperature Coefficient (ppm/K)"
+                "Power Consumption (W)", "Temperature Coefficient (ppm/K)",
+                "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
+                "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
+                "Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
                 - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
                   * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V", "page": "2"}}
+                
+                [PROCESSABILITY RULES]
+                - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
+                - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
+                - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
+                - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
+                - FOR "ESS Suitable": Select ONLY ONE: "ESS released" or "not ESS released".
+                - FOR "Washability" and "Varnishability": Select ONLY "Yes" or "No".
+                - FOR REFLOW ("Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"): Extract the literal numerical value and its unit (e.g., "3 cycles", "40 seconds", "260 °C").
+                
+                [GENERAL RULES]
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
@@ -101,7 +112,6 @@ if uploaded_file is not None:
                 
                 for attempt in range(max_retries):
                     try:
-                        # Panggil dan pusing API Key baharu setiap kali percubaan bermula
                         api_keys = st.secrets["GEMINI_API_KEY"].split(",")
                         selected_key = random.choice(api_keys).strip()
                         genai.configure(api_key=selected_key)
@@ -115,15 +125,13 @@ if uploaded_file is not None:
                             }
                         )
                         extracted_data = json.loads(response.text)
-                        break # Berjaya! Keluar dari loop
+                        break 
                         
                     except KeyError:
-                        # Tangkap ralat jika API Key tiada dalam setting
                         st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
                         st.stop()
                         
                     except Exception as e:
-                        # Tangkap ralat limit / kuota / lain-lain
                         if "429" in str(e) or "Quota" in str(e):
                             if attempt < max_retries - 1:
                                 st.warning(f"Exceed API limit. System will auto try in {retry_delay} seconds... (Trial {attempt+1}/{max_retries})")
@@ -135,7 +143,6 @@ if uploaded_file is not None:
                             st.error(f"API Error: {e}")
                             st.stop()
                 
-                # Jika sistem gagal sepenuhnya selepas 3 kali, pastikan kod berhenti
                 if not extracted_data:
                     st.stop()
                 
@@ -144,7 +151,7 @@ if uploaded_file is not None:
                 
                 # Asingkan Designation
                 designation_text = extracted_data.pop("Designation", "N/A")
-                if isinstance(designation_text, dict): # Jika AI terbuat nested JSON
+                if isinstance(designation_text, dict): 
                     designation_text = designation_text.get("value", "N/A")
                 designation_text = str(designation_text).upper()
                 
@@ -157,15 +164,15 @@ if uploaded_file is not None:
                 
                 st.info(f"**Standardized Designation:** {designation_text}")
                 
+                # --- DEFINISI KATEGORI ---
                 keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
                 keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
+                keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle", "Max Reflow Time", "Max Reflow Temp"]
                 keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"]
 
-                # Fungsi bina jadual baru (termasuk Evidence & Page)
                 def build_table(keys_list, data_dict):
                     specs, values, units, evidences, pages = [], [], [], [], []
                     for key in keys_list:
-                        # Dapatkan Value, Evidence dan Page
                         item = data_dict.get(key, {"value": "N/A", "evidence": "N/A", "page": "N/A"})
                         if isinstance(item, str):
                             val, ev, pg = item, "N/A", "N/A"
@@ -192,17 +199,19 @@ if uploaded_file is not None:
                         
                     return {"Specification": specs, "Extracted Value": values, "Unit": units, "Page": pages, "Source Evidence": evidences}
 
-                tab1, tab2, tab3 = st.tabs(["Top", "Library", "Techn.Parameter"])
+                # --- 4 TABS UI ---
+                tab1, tab2, tab3, tab4 = st.tabs(["Top", "Library", "Processability", "Techn.Parameter"])
                 with tab1: st.table(build_table(keys_top, extracted_data))
                 with tab2: st.table(build_table(keys_library, extracted_data))
-                with tab3: st.table(build_table(keys_techn, extracted_data))
+                with tab3: st.table(build_table(keys_processability, extracted_data))
+                with tab4: st.table(build_table(keys_techn, extracted_data))
                 
                 # --- JANA FAIL EXCEL (CSV) ---
-                all_keys = keys_top + keys_library + keys_techn
+                all_keys = keys_top + keys_library + keys_processability + keys_techn
                 all_data = build_table(all_keys, extracted_data)
                 
                 csv_buffer = io.StringIO()
-                csv_buffer.write('\ufeff') # Tambah BOM (Byte Order Mark) supaya Excel baca simbol dengan betul
+                csv_buffer.write('\ufeff') 
                 
                 writer = csv.writer(csv_buffer)
                 writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) 
