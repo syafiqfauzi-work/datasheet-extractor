@@ -84,7 +84,7 @@ if uploaded_file is not None:
                 - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
                 [GENERAL RULES]
-                - FOR "Temperature Coefficient": Extract the numerical value TOGETHER WITH its exact unit as written in the datasheet (e.g., "100 ppm/°C" or "200 ppm/K") into the value field. Do NOT convert the unit.
+                - FOR "Temperature Coefficient": This may be labeled as "T.C.R.", "TCR", or "T. C. R." in the datasheet. If the value is in a merged cell or shared across multiple rows/components, extract that shared value. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard any "±" symbols.
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
