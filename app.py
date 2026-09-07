@@ -4,6 +4,8 @@ import PyPDF2
 import json
 import time   # Tambah ini untuk fungsi rehat/tunggu
 import random # Tambah ini untuk pilih API key rawak
+import csv # Tambah ini
+import io  # Tambah ini
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
@@ -75,7 +77,8 @@ if uploaded_file is not None:
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
-                - The values must be strings. If data is missing, use "N/A".
+                - FOR ALL OTHER KEYS: Return a nested JSON object with two fields: "value" (the string value, or "N/A") and "evidence" (a short exact quote from the text to prove the value).
+                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V"}}
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
                 - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
@@ -124,97 +127,80 @@ if uploaded_file is not None:
                 if not extracted_data:
                     st.stop()
                 
-                # Tukar JSON dari AI kepada jadual Streamlit
+              # Tukar JSON dari AI
                 extracted_data = json.loads(response.text)
                 
-               # Asingkan Designation dan paparkan di atas (huruf besar)
-                designation_text = extracted_data.pop("Designation", "N/A").upper()
+                # Asingkan Designation
+                designation_text = extracted_data.pop("Designation", "N/A")
+                if isinstance(designation_text, dict): # Jika AI terbuat nested JSON
+                    designation_text = designation_text.get("value", "N/A")
+                designation_text = str(designation_text).upper()
                 
                 st.success("Extraction Complete!")
                 
-                # --- SIMPAN KE HISTORY ---
+                # Simpan History
                 rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
                 if rekod_mpn not in st.session_state.history:
                     st.session_state.history.append(rekod_mpn)
                 
                 st.info(f"**Standardized Designation:** {designation_text}")
-                                
-                # --- DEFINISI KATEGORI TAB ---
-                keys_top = [
-                    "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
-                    "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"
-                ]
                 
-                keys_library = [
-                    "Length (mm)", "Width (mm)", "Height (Max)", 
-                    "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"
-                ]
-                
-                keys_techn = [
-                    "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
-                    "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"
-                ]
+                keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
+                keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
+                keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"]
 
-                # Fungsi untuk susun data ke dalam jadual berserta lajur Unit
+                # Fungsi bina jadual baru (termasuk Evidence)
                 def build_table(keys_list, data_dict):
-                    specs, values, units = [], [], []
+                    specs, values, units, evidences = [], [], [], []
                     for key in keys_list:
-                        val = data_dict.get(key, "N/A") # Ambil nilai dari JSON
-                        
-                        # Asingkan Unit
-                        if "(°C)" in key:
-                            specs.append(key.replace(" (°C)", ""))
-                            units.append("°C")
-                        elif "(mm)" in key:
-                            specs.append(key.replace(" (mm)", ""))
-                            units.append("mm")
-                        elif "(Ohm)" in key:
-                            specs.append(key.replace(" (Ohm)", ""))
-                            units.append("Ohm")
-                        elif "(%)" in key:
-                            specs.append(key.replace(" (%)", ""))
-                            units.append("%")
-                        elif "(V)" in key:
-                            specs.append(key.replace(" (V)", ""))
-                            units.append("V")
-                        elif "(W)" in key:
-                            specs.append(key.replace(" (W)", ""))
-                            units.append("W")
-                        elif "(ppm/K)" in key:
-                            specs.append(key.replace(" (ppm/K)", ""))
-                            units.append("ppm/K")
+                        # Dapatkan Value dan Evidence
+                        item = data_dict.get(key, {"value": "N/A", "evidence": "N/A"})
+                        if isinstance(item, str):
+                            val, ev = item, "N/A"
                         else:
-                            specs.append(key)
-                            units.append("-")
+                            val = item.get("value", "N/A")
+                            ev = item.get("evidence", "N/A")
                             
-                        values.append(val)
+                        # Asingkan Unit
+                        unit_str = "-"
+                        if "(°C)" in key: key, unit_str = key.replace(" (°C)", ""), "°C"
+                        elif "(mm)" in key: key, unit_str = key.replace(" (mm)", ""), "mm"
+                        elif "(Ohm)" in key: key, unit_str = key.replace(" (Ohm)", ""), "Ohm"
+                        elif "(%)" in key: key, unit_str = key.replace(" (%)", ""), "%"
+                        elif "(V)" in key: key, unit_str = key.replace(" (V)", ""), "V"
+                        elif "(W)" in key: key, unit_str = key.replace(" (W)", ""), "W"
+                        elif "(ppm/K)" in key: key, unit_str = key.replace(" (ppm/K)", ""), "ppm/K"
                         
-                    return {"Specification": specs, "Extracted Value": values, "Unit": units}
+                        specs.append(key)
+                        values.append(val)
+                        units.append(unit_str)
+                        evidences.append(ev)
+                        
+                    return {"Specification": specs, "Extracted Value": values, "Unit": units, "Source Evidence": evidences}
 
-                # --- BINA TAB DI STREAMLIT ---
                 tab1, tab2, tab3 = st.tabs(["Top", "Library", "Techn.Parameter"])
+                with tab1: st.table(build_table(keys_top, extracted_data))
+                with tab2: st.table(build_table(keys_library, extracted_data))
+                with tab3: st.table(build_table(keys_techn, extracted_data))
                 
-                with tab1:
-                    st.table(build_table(keys_top, extracted_data))
+                # --- JANA FAIL EXCEL (CSV) ---
+                all_keys = keys_top + keys_library + keys_techn
+                all_data = build_table(all_keys, extracted_data)
                 
-                with tab2:
-                    st.table(build_table(keys_library, extracted_data))
-                    
-                with tab3:
-                    st.table(build_table(keys_techn, extracted_data))
+                csv_buffer = io.StringIO()
+                writer = csv.writer(csv_buffer)
+                writer.writerow(["Specification", "Extracted Value", "Unit", "Source Evidence"]) # Header
                 
-            except Exception as e:
-                # Paparkan ralat jika ada (termasuk sistem retry)
-                st.error(f"Error Happened!: {e}")
+                for i in range(len(all_data["Specification"])):
+                    writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Source Evidence"][i]])
                 
-                # Susun data untuk paparan cantik
-                table_data = {
-                    "Specification": list(extracted_data.keys()),
-                    "Extracted Value": list(extracted_data.values())
-                }
-                
-                st.success("Extraction Complete!")
-                st.table(table_data) # Ini menjamin jadual sentiasa sama
+                st.divider()
+                st.download_button(
+                    label="📥 Download Report (CSV / Excel)",
+                    data=csv_buffer.getvalue(),
+                    file_name=f"{rekod_mpn}_Report.csv",
+                    mime="text/csv"
+                )
                 
             except Exception as e:
                 st.error(f"Error Happened!: {e}")
