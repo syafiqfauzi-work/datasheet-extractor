@@ -80,7 +80,7 @@ if uploaded_file is not None:
                 - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
                 - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
                 - FOR "ESS Suitable": Evaluate the extracted Storage Temperatures. If the Storage Temperature (Min) and Storage Temperature (Max) fall in the range of -20°C to 75°C, select "ESS released". Otherwise, select "not ESS released". If there is no information available for the Storage Temperature, strictly return "N/A".
-                - FOR "Washability" and "Varnishability": Select ONLY "Yes" or "No".
+                - FOR "Washability" and "Varnishability": Select "Yes" or "No" if explicitly stated in the datasheet. If there is no information available regarding washability or varnishability, strictly return "N/A".
                 - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
                 [GENERAL RULES]
