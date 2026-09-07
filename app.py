@@ -70,7 +70,7 @@ if uploaded_file is not None:
                 "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
                 "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
                 "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
-                "Resistance (Ohm)", "Tolerance (%) (Extract Standard Operation Mode value only)", "Voltage (V)", "Function", 
+                "Resistance (Ohm)", "Tolerance (%)", "Voltage (V) (Extract Standard Operation Mode value only)", "Function", 
                 "Power Consumption (W) (Extract Standard Operation Mode value only)", "Temperature Coefficient (ppm/K)"
 
                 Important Instructions:
