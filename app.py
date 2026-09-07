@@ -81,10 +81,11 @@ if uploaded_file is not None:
                   * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
                 - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
                 - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
-                  [Resistance] [Tolerance] [Temperature coefficient] [Power] [Package EIA] [Additional Info]
+                  [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
                   * Note 1: If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
-                  * Note 2: For [Additional Info], scan the datasheet and append these tags if applicable (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ.
-                  * Example output: 3R6 1% 100ppm 0.250W 1206 PP/HP
+                  * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
+                  * Note 3: For [Additional Info], scan the datasheet and append these tags if applicable (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ.
+                  * Example output: 3R6 1% 100ppm 0.05W 0201 PP/HP
                 
                 Datasheet Text:
                 -----------------
