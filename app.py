@@ -32,18 +32,7 @@ with st.sidebar:
     else:
         st.info("No search record yet.")
 
-# --- 2. SETTING API KEY (ROTATION) ---
-try:
-    # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
-    api_keys = st.secrets["GEMINI_API_KEY"].split(",")
-    selected_key = random.choice(api_keys).strip()
-    genai.configure(api_key=selected_key)
-    
-    model = genai.GenerativeModel('gemini-3.6-flash')
-except KeyError:
-    st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
-    st.stop()
-    
+  
 # --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
 if st.button("🔄 Reset"):
     st.session_state.reset_key += 1
@@ -113,6 +102,18 @@ if uploaded_file is not None:
                         genai.configure(api_key=selected_key)
                         model = genai.GenerativeModel('gemini-3.6-flash')
 
+                        # --- 2. SETTING API KEY (ROTATION) ---
+                    try:
+                        # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
+                        api_keys = st.secrets["GEMINI_API_KEY"].split(",")
+                        selected_key = random.choice(api_keys).strip()
+                        genai.configure(api_key=selected_key)
+    
+                        model = genai.GenerativeModel('gemini-3.6-flash')
+                    except KeyError:
+                        st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
+                        st.stop()
+                        
                         response = model.generate_content(
                             full_prompt,
                             generation_config={
