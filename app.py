@@ -12,7 +12,7 @@ st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
 st.title("📄 RG Datasheet Extractor")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
-# --- 1.5 INISIALISASI MEMORI (SESSION STATE) ---
+# --- 2. INISIALISASI MEMORI (SESSION STATE) ---
 if "reset_key" not in st.session_state:
     st.session_state.reset_key = 0
 if "history" not in st.session_state:
@@ -30,7 +30,6 @@ with st.sidebar:
             st.rerun() 
     else:
         st.info("No search record yet.")
-
   
 # --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
 if st.button("🔄 Reset"):
@@ -79,7 +78,7 @@ if uploaded_file is not None:
                 - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
                 - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
                 - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
-                - FOR "ESS Suitable": Select ONLY ONE: "ESS released" or "not ESS released".
+                - FOR "ESS Suitable": Evaluate the extracted Operating Temperatures. If the Operating Temperature (Min) and Operating Temperature (Max) fall in the range of -20°C to 75°C, select "ESS released". Otherwise, select "not ESS released". If there is no information available for the Operating Temperature, strictly return "N/A".
                 - FOR "Washability" and "Varnishability": Select ONLY "Yes" or "No".
                 - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
