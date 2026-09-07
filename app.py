@@ -100,7 +100,7 @@ if uploaded_file is not None:
                         api_keys = st.secrets["GEMINI_API_KEY"].split(",")
                         selected_key = random.choice(api_keys).strip()
                         genai.configure(api_key=selected_key)
-                        model = genai.GenerativeModel('gemini-3.6-flash')
+                        model = genai.GenerativeModel('gemini-1.5-flash')
                         
                         response = model.generate_content(
                             full_prompt,
