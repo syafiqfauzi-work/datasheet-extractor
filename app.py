@@ -64,7 +64,7 @@ if uploaded_file is not None:
                 "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
                 "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
                 "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
-                "Power Consumption (W)", "Temperature Coefficient",
+                "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
                 "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
                 "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
                 "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
@@ -85,7 +85,8 @@ if uploaded_file is not None:
                 
                 [GENERAL RULES]
                 - FOR "Resistance (Ohm)": Format the extracted resistance value using the industry-standard R/K/M notation where the letter acts as the decimal multiplier (R = 1, K = 1,000, M = 1,000,000). The letter replaces the decimal point. Examples: 5.11 Ω becomes "5R11", 97.6 Ω becomes "97R6", 9760 Ω becomes "9K76". Do not output standard decimals.
-                - FOR "Temperature Coefficient": EXTREMELY CRITICAL. PDF tables are flattened, so you must carefully map the correct value using this sequence: 1) Identify the Package Size (e.g., RC0603). 2) Identify the Tolerance code from the MPN (e.g., 'F' = 1%). 3) Convert the MPN resistance to decimals (e.g., 5R11 = 5.11 Ohms). 4) Find the specific T.C.R. block for that exact Package AND Tolerance combination. 5) Evaluate the resistance sub-ranges mathematically. For example, if RC0603 1% lists "1Ω ≤ R ≤ 10Ω" for 200ppm and "10Ω < R ≤ 10MΩ" for 100ppm, a 5.11 Ohm resistor strictly falls into the 1-10 range and MUST return 200ppm. Do NOT default to 100ppm if a smaller valid range exists. Extract the final value and unit (e.g., "200 ppm/°C"). Discard "±".
+                - FOR "TCR_Calculation_Logic": You MUST "think out loud" here before answering the Temperature Coefficient. 1) State the exact decimal resistance from the MPN (e.g., 5R11 = 5.11). 2) State the Tolerance. 3) Look at the datasheet text and copy the EXACT mathematical range that this resistance falls into (e.g., 1Ω ≤ R ≤ 10Ω).
+                - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
