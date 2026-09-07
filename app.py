@@ -58,7 +58,12 @@ if uploaded_file is not None:
         with st.spinner("Reading PDF and extracting data... Please wait."):
             try:
                 reader = PyPDF2.PdfReader(uploaded_file)
-                pdf_text = "".join([page.extract_text() + "\n" for page in reader.pages if page.extract_text()])
+                # Baca PDF dan letak penanda muka surat
+                pdf_text = ""
+                for i, page in enumerate(reader.pages):
+                    text = page.extract_text()
+                    if text:
+                        pdf_text += f"\n\n--- PAGE {i + 1} ---\n{text}"
                 
                 mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
                 
@@ -77,8 +82,8 @@ if uploaded_file is not None:
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
-                - FOR ALL OTHER KEYS: Return a nested JSON object with two fields: "value" (the string value, or "N/A") and "evidence" (a short exact quote from the text to prove the value).
-                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V"}}
+                - FOR ALL OTHER KEYS: Return a nested JSON object with two fields: "value" (the string value, or "N/A") and "evidence" (a short exact quote from the text AND the exact Page number to prove the value).
+                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V (Found on PAGE 2)"}}
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
                 - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
