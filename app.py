@@ -87,6 +87,7 @@ if uploaded_file is not None:
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
                 - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
+                - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
                 - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
                   [Resistance] [Tolerance] [Temperature coefficient] [Power] [Package EIA] [Additional Info]
                   * Note 1: If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
