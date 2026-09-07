@@ -64,7 +64,7 @@ if uploaded_file is not None:
                 "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
                 "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
                 "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
-                "Power Consumption (W)", "Temperature Coefficient (ppm/K)",
+                "Power Consumption (W)", "Temperature Coefficient",
                 "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
                 "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
                 "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
@@ -84,7 +84,7 @@ if uploaded_file is not None:
                 - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
                 [GENERAL RULES]
-                - FOR "Temperature Coefficient (ppm/K)": Extract the value even if the datasheet expresses the unit as "ppm/°C". Return ONLY the numerical value and discard the unit text.
+                - FOR "Temperature Coefficient": Extract the numerical value TOGETHER WITH its exact unit as written in the datasheet (e.g., "100 ppm/°C" or "200 ppm/K") into the value field. Do NOT convert the unit.
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
@@ -169,7 +169,7 @@ if uploaded_file is not None:
                 keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
                 keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
                 keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
-                keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"]
+                keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)"]
 
                 def build_table(keys_list, data_dict):
                     specs, values, units, evidences, pages = [], [], [], [], []
@@ -184,7 +184,15 @@ if uploaded_file is not None:
                             
                         # Asingkan Unit
                         unit_str = "-"
-                        if "(°C)" in key: key, unit_str = key.replace(" (°C)", ""), "°C"
+                        if key == "Temperature Coefficient" and val != "N/A":
+                            if "ppm/°C" in val:
+                                val, unit_str = val.replace("ppm/°C", "").strip(), "ppm/°C"
+                            elif "ppm/K" in val:
+                                val, unit_str = val.replace("ppm/K", "").strip(), "ppm/K"
+                            elif "ppm/C" in val: 
+                                val, unit_str = val.replace("ppm/C", "").strip(), "ppm/°C"
+                                
+                        elif "(°C)" in key: key, unit_str = key.replace(" (°C)", ""), "°C"
                         elif "(mm)" in key: key, unit_str = key.replace(" (mm)", ""), "mm"
                         elif "(Ohm)" in key: key, unit_str = key.replace(" (Ohm)", ""), "Ohm"
                         elif "(%)" in key: key, unit_str = key.replace(" (%)", ""), "%"
