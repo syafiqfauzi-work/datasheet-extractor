@@ -101,18 +101,6 @@ if uploaded_file is not None:
                         selected_key = random.choice(api_keys).strip()
                         genai.configure(api_key=selected_key)
                         model = genai.GenerativeModel('gemini-3.6-flash')
-
-                    # --- 2. SETTING API KEY (ROTATION) ---
-                    try:
-                        # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
-                        api_keys = st.secrets["GEMINI_API_KEY"].split(",")
-                        selected_key = random.choice(api_keys).strip()
-                        genai.configure(api_key=selected_key)
-    
-                        model = genai.GenerativeModel('gemini-3.6-flash')
-                    except KeyError:
-                        st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
-                        st.stop()
                         
                         response = model.generate_content(
                             full_prompt,
@@ -124,7 +112,13 @@ if uploaded_file is not None:
                         extracted_data = json.loads(response.text)
                         break # Berjaya! Keluar dari loop
                         
+                    except KeyError:
+                        # Tangkap ralat jika API Key tiada dalam setting
+                        st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
+                        st.stop()
+                        
                     except Exception as e:
+                        # Tangkap ralat limit / kuota / lain-lain
                         if "429" in str(e) or "Quota" in str(e):
                             if attempt < max_retries - 1:
                                 st.warning(f"Exceed API limit. System will auto try in {retry_delay} seconds... (Trial {attempt+1}/{max_retries})")
