@@ -84,7 +84,8 @@ if uploaded_file is not None:
                 - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
                 
                 [GENERAL RULES]
-                - FOR "Temperature Coefficient": This may be labeled as "T.C.R.", "TCR", or "T. C. R." in the datasheet. If the value is in a merged cell or shared across multiple rows/components, extract that shared value. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard any "±" symbols.
+                - FOR "Resistance (Ohm)": Format the extracted resistance value using the industry-standard R/K/M notation where the letter acts as the decimal multiplier (R = 1, K = 1,000, M = 1,000,000). The letter replaces the decimal point. Examples: 5.11 Ω becomes "5R11", 97.6 Ω becomes "97R6", 9760 Ω becomes "9K76". Do not output standard decimals.
+                - FOR "Temperature Coefficient": This may be labeled as "T.C.R.", "TCR", or "T. C. R." in the datasheet. If the T.C.R. value depends on the component's Resistance range (e.g., 1Ω ≤ R ≤ 10Ω), you MUST evaluate the exact resistance of the target MPN and extract the specific T.C.R. assigned to that range. If the value is in a merged cell, extract that shared value. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard any "±" symbols.
                 - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
@@ -95,7 +96,7 @@ if uploaded_file is not None:
                 - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
                 - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
                   [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
-                  * Note 1: If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
+                  * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
                   * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
                   * Note 3: For [Additional Info], scan the datasheet and append these tags if applicable (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ.
                   * Example output: 3R6 1% 100ppm 0.05W 0201 PP/HP
