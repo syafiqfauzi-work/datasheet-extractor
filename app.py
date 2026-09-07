@@ -82,8 +82,8 @@ if uploaded_file is not None:
 
                 Important Instructions:
                 - Return strictly a valid JSON object with the keys above.
-                - FOR ALL OTHER KEYS: Return a nested JSON object with two fields: "value" (the string value, or "N/A") and "evidence" (a short exact quote from the text AND the exact Page number to prove the value).
-                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V (Found on PAGE 2)"}}
+                - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
+                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V", "page": "2"}}
                 - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
                 - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
                 - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
@@ -154,17 +154,18 @@ if uploaded_file is not None:
                 keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
                 keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient (ppm/K)", "Height (mm)"]
 
-                # Fungsi bina jadual baru (termasuk Evidence)
+                # Fungsi bina jadual baru (termasuk Evidence & Page)
                 def build_table(keys_list, data_dict):
-                    specs, values, units, evidences = [], [], [], []
+                    specs, values, units, evidences, pages = [], [], [], [], []
                     for key in keys_list:
-                        # Dapatkan Value dan Evidence
-                        item = data_dict.get(key, {"value": "N/A", "evidence": "N/A"})
+                        # Dapatkan Value, Evidence dan Page
+                        item = data_dict.get(key, {"value": "N/A", "evidence": "N/A", "page": "N/A"})
                         if isinstance(item, str):
-                            val, ev = item, "N/A"
+                            val, ev, pg = item, "N/A", "N/A"
                         else:
                             val = item.get("value", "N/A")
                             ev = item.get("evidence", "N/A")
+                            pg = item.get("page", "N/A")
                             
                         # Asingkan Unit
                         unit_str = "-"
@@ -180,8 +181,9 @@ if uploaded_file is not None:
                         values.append(val)
                         units.append(unit_str)
                         evidences.append(ev)
+                        pages.append(pg)
                         
-                    return {"Specification": specs, "Extracted Value": values, "Unit": units, "Source Evidence": evidences}
+                    return {"Specification": specs, "Extracted Value": values, "Unit": units, "Page": pages, "Source Evidence": evidences}
 
                 tab1, tab2, tab3 = st.tabs(["Top", "Library", "Techn.Parameter"])
                 with tab1: st.table(build_table(keys_top, extracted_data))
@@ -194,14 +196,14 @@ if uploaded_file is not None:
                 
                 csv_buffer = io.StringIO()
                 writer = csv.writer(csv_buffer)
-                writer.writerow(["Specification", "Extracted Value", "Unit", "Source Evidence"]) # Header
+                writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) # Header Baharu
                 
                 for i in range(len(all_data["Specification"])):
-                    writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Source Evidence"][i]])
+                    writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Page"][i], all_data["Source Evidence"][i]])
                 
                 st.divider()
                 st.download_button(
-                    label="📥 Download Report (CSV / Excel)",
+                    label="📥 Download Report (CSV)",
                     data=csv_buffer.getvalue(),
                     file_name=f"{rekod_mpn}_Report.csv",
                     mime="text/csv"
