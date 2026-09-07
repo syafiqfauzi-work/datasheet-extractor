@@ -107,6 +107,12 @@ if uploaded_file is not None:
                 
                 for attempt in range(max_retries):
                     try:
+                        # Panggil dan pusing API Key baharu setiap kali percubaan bermula
+                        api_keys = st.secrets["GEMINI_API_KEY"].split(",")
+                        selected_key = random.choice(api_keys).strip()
+                        genai.configure(api_key=selected_key)
+                        model = genai.GenerativeModel('gemini-3.6-flash')
+
                         response = model.generate_content(
                             full_prompt,
                             generation_config={
@@ -124,7 +130,7 @@ if uploaded_file is not None:
                                 time.sleep(retry_delay)
                             else:
                                 st.error("Failed after 3 trials. Rilex & wait for a minute, then try again.")
-                                st.stop() # Hentikan proses supaya tak keluar NameError
+                                st.stop() 
                         else:
                             st.error(f"API Error: {e}")
                             st.stop()
