@@ -98,8 +98,20 @@ if uploaded_file is not None:
                   [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
                   * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
                   * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
-                  * Note 3: For [Additional Info], scan the datasheet and append these tags if applicable (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ.
-                  * Example output: 3R6 1% 100ppm 0.05W 0201 PP/HP
+                  * Note 3: For [Additional Info], analyze the datasheet descriptions deeply and append the following exact tags if their corresponding features are found (separate multiple tags with '/'). Evaluate these specific mappings:
+                    - "HF": High Frequency
+                    - "PP": High Pulse, Pulse Proof, or Anti Surge
+                    - "HP": High Power (power higher than standard)
+                    - "HV": High Voltage
+                    - "AS": Anti Sulfurated or Anti-Sulfur
+                    - "FT": Flexiterm, Flexible Termination, or Soft Termination
+                    - "SM": Special Mounting (Flange, Chassis, Stacked)
+                    - "AIN": Aluminium Nitride material
+                    - "AU": Gold (Au) contact surface
+                    - "AG": Silver (Ag) contact surface
+                    - "CU": Copper (Cu) contact surface
+                    - "AQ": Automotive Grade or AEC-Q200 qualified
+                  * Example output: 5R11 1% 200ppm 0.1W 0603 PP/AQ/AS
                 
                 Datasheet Text:
                 -----------------
