@@ -102,7 +102,7 @@ if uploaded_file is not None:
                         genai.configure(api_key=selected_key)
                         model = genai.GenerativeModel('gemini-3.6-flash')
 
-                        # --- 2. SETTING API KEY (ROTATION) ---
+                    # --- 2. SETTING API KEY (ROTATION) ---
                     try:
                         # Ambil senarai API key dan pilih secara rawak untuk jimat kuota
                         api_keys = st.secrets["GEMINI_API_KEY"].split(",")
