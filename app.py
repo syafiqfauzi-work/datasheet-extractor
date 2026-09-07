@@ -8,9 +8,10 @@ import csv
 import io  
 
 # --- 1. SETTING TAJUK WEB ---
-st.set_page_config(page_title="RG Datasheet Extractor", page_icon="📄")
-st.title("📄 RG Datasheet Extractor")
+st.set_page_config(page_title="RG Datasheet Analyzer", page_icon="📄")
+st.title("📄 RG Datasheet Analyzer")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
+st.write("Analyzer last update on: 07/09/2026.")
 
 # --- 2. INISIALISASI MEMORI (SESSION STATE) ---
 if "reset_key" not in st.session_state:
