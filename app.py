@@ -53,8 +53,18 @@ if uploaded_file is not None:
         progress_text = "Starting extraction process..."
         progress_bar = st.progress(0, text=progress_text)
         
-        try:
+       try:
             reader = PyPDF2.PdfReader(uploaded_file)
+            
+            # --- PENAPIS KESELAMATAN (SECURITY BYPASS) ---
+            if reader.is_encrypted:
+                try:
+                    reader.decrypt("") # Buka kunci AES dengan kata laluan kosong
+                except Exception:
+                    st.error("Fail PDF ini dikunci dengan kata laluan penuh. Sila cari versi datasheet yang tidak di-encrypt.")
+                    st.stop()
+            # ---------------------------------------------
+            
             pdf_text = ""
             total_pages = len(reader.pages)
             
