@@ -78,7 +78,7 @@ if uploaded_file is not None:
             "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
             "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
             "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
-            "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
+            "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
             "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
             "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
@@ -92,7 +92,7 @@ if uploaded_file is not None:
             
             [PROCESSABILITY RULES]
             - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
-              * CRITICAL LOGIC: If the datasheet mentions traditional leaded components or soldering via "wave or dipping", select "THW". If it explicitly mentions "Through-Hole Reflow", "THR", or "Pin-in-Paste (PiP)", select "THR, PiP". If it is a standard surface mount chip/SMD, select "SMT".
+              * CRITICAL LOGIC: If the datasheet mentions traditional leaded components or soldering via "wave or dipping", select "THW (through-hole technology)". If it explicitly mentions "Through-Hole Reflow", "THR", or "Pin-in-Paste (PiP)", select "THR, PiP (through-hole technology)". If it is a standard surface mount chip/SMD, select "SMT (surface-mounting technology)".
             - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
             - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
             - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
@@ -101,7 +101,8 @@ if uploaded_file is not None:
             - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
             
             [GENERAL RULES]
-            - FOR "Resistance (Ohm)": CRITICAL - Decode directly from the provided MPN. Extract the 3-digit base value and the 1-digit multiplier. You MUST use this STRICT MULTIPLIER MAP: '7'=*10^-3, '8'=*10^-2, '9'=*10^-1, '0'=*1, '1'=*10, '2'=*100, '3'=*1,000 (K), '4'=*10,000, '5'=*100,000, '6'=*1,000,000 (M). Example: For MPN containing "2748", base is 274, multiplier is '8' (*10^-2). 274 * 0.01 = 2.74 Ohms. Convert the final decimal to R/K/M format: 2.74 becomes "2R74". Do NOT guess; mathematically apply this exact multiplier map.
+            - FOR "Resistance_Calculation_Logic": If a target MPN is provided, you MUST "think out loud" to decode the resistance. 1) Identify the 4-digit resistance code in the MPN (e.g., for MBB02070C1828FCT00, the code is 1828). 2) Split it into a 3-digit base and 1-digit multiplier (e.g., Base 182, Multiplier 8). 3) Map the multiplier using this strict dictionary: '7'=*0.001, '8'=*0.01, '9'=*0.1, '0'=*1, '1'=*10, '2'=*100, '3'=*1000, '4'=*10000, '5'=*100000, '6'=*1000000. 4) Mathematically multiply the base by the mapped multiplier (e.g., 182 * 0.01 = 1.82 Ohms). 5) Convert this final exact decimal into industry-standard R/K/M notation (e.g., 1.82 becomes 1R82). Do NOT skip steps.
+            - FOR "Resistance (Ohm)": Look STRICTLY at the final R/K/M formatted value you just derived in "Resistance_Calculation_Logic" and extract ONLY that exact string.
             - FOR "TCR_Calculation_Logic": You MUST "think out loud" here before answering the Temperature Coefficient. 1) State the exact decimal resistance from the MPN (e.g., 5R11 = 5.11). 2) State the Tolerance. 3) Look at the datasheet text and copy the EXACT mathematical range that this resistance falls into (e.g., 1Ω ≤ R ≤ 10Ω).
             - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
             - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
@@ -192,8 +193,9 @@ if uploaded_file is not None:
                 designation_text = designation_text.get("value", "N/A")
             designation_text = str(designation_text).upper()
             
-            # Buang TCR_Calculation_Logic dari paparan jadual
+            # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
+            extracted_data.pop("Resistance_Calculation_Logic", None)
             
             st.success("Extraction Complete!")
             progress_bar.progress(100, text="Done!")
