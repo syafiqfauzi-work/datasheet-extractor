@@ -74,7 +74,6 @@ if uploaded_file is not None:
             Review the provided datasheet text and accurately extract the requested information. 
             
             Extract these exact keys:
-            "Designation",
             "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
             "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
             "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
@@ -83,7 +82,8 @@ if uploaded_file is not None:
             "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
-            "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
+            "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
+            "Designation"
 
             Important Instructions:
             - Return strictly a valid JSON object with the keys above.
@@ -117,7 +117,7 @@ if uploaded_file is not None:
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
               * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
               * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
-              * Note 3: For [Additional Info], analyze the datasheet descriptions deeply and append the following exact tags if their corresponding features are found (separate multiple tags with '/'). Evaluate these specific mappings:
+              * Note 3: For [Additional Info], scan the datasheet and append the following exact tags if their corresponding features are found (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ. If no additional tags apply, leave this section COMPLETELY EMPTY (do NOT write "N/A" at the end of the designation). Evaluate these specific mappings:
                 - "HF": High Frequency
                 - "PP": High Pulse, Pulse Proof, or Anti Surge
                 - "HP": High Power (power higher than standard)
