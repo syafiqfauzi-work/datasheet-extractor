@@ -130,7 +130,8 @@ if uploaded_file is not None:
                 - "AG": Silver (Ag) contact surface
                 - "CU": Copper (Cu) contact surface
                 - "AQ": Automotive Grade or AEC-Q200 qualified
-              * Example output: 5R11 1% 200ppm 0.1W 0603 PP/AQ/AS
+              * * Note 4: For [Temperature coefficient], use ONLY the numeric value followed by "PPM". You MUST drop the "/K" or "/°C" completely. Example: use "50PPM", NEVER "50PPM/K" or "50PPM/°C".
+              * Example output: 5R11 1% 200PPM 0.1W 0603 PP/AQ/AS
             
             Datasheet Text:
             -----------------
@@ -192,6 +193,9 @@ if uploaded_file is not None:
             if isinstance(designation_text, dict): 
                 designation_text = designation_text.get("value", "N/A")
             designation_text = str(designation_text).upper()
+            
+            # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
+            designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
             
             # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
