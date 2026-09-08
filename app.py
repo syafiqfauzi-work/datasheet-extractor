@@ -33,28 +33,28 @@ with st.sidebar:
         st.info("No search record yet.")
   
 # --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
-if st.button("🔄 Reset"):
-    st.session_state.reset_key += 1
-    st.rerun() 
-
-target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
-uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
-
-if uploaded_file is not None:
-    if st.button("Extract Data", type="primary"):
-        with st.spinner("Reading PDF and extracting data... Please wait."):
-            try:
-                reader = PyPDF2.PdfReader(uploaded_file)
-                pdf_text = ""
-                for i, page in enumerate(reader.pages):
-                    text = page.extract_text()
-                    if text:
-                        pdf_text += f"\n\n--- PAGE {i + 1} ---\n{text}"
+if st.button("Extract Data", type="primary"):
+        progress_text = "Starting extraction process..."
+        progress_bar = st.progress(0, text=progress_text)
+        
+        try:
+            reader = PyPDF2.PdfReader(uploaded_file)
+            pdf_text = ""
+            total_pages = len(reader.pages)
+            
+            # Fasa 1: Membaca PDF (0% - 30%)
+            for i, page in enumerate(reader.pages):
+                text = page.extract_text()
+                if text:
+                    pdf_text += f"\n\n--- PAGE {i + 1} ---\n{text}"
                 
-                mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
-                
-                full_prompt = f"""
-                Act as an expert electronics engineer. {mpn_instruction}
+                prog_val = int(((i + 1) / total_pages) * 30)
+                progress_bar.progress(prog_val, text=f"Reading PDF... (Page {i+1}/{total_pages})")
+            
+            mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
+            
+            full_prompt = f"""
+            Act as an expert electronics engineer. {mpn_instruction}
                 Review the provided datasheet text and accurately extract the requested information. 
                 
                 Extract these exact keys:
@@ -118,7 +118,71 @@ if uploaded_file is not None:
                 -----------------
                 {pdf_text}
                 """
-                
+            
+            # Fasa 2: Menghantar ke AI (30% - 80%)
+            progress_bar.progress(40, text="Analyzing datasheet using AI... This may take a minute.")
+            
+            max_retries = 3
+            retry_delay = 15 
+            extracted_data = None
+            
+            for attempt in range(max_retries):
+                try:
+                    api_keys = st.secrets["GEMINI_API_KEY"].split(",")
+                    selected_key = random.choice(api_keys).strip()
+                    genai.configure(api_key=selected_key)
+                    model = genai.GenerativeModel('gemini-3.5-flash-lite')
+                    
+                    response = model.generate_content(
+                        full_prompt,
+                        generation_config={
+                            "temperature": 0.0,
+                            "response_mime_type": "application/json"
+                        }
+                    )
+                    extracted_data = json.loads(response.text)
+                    progress_bar.progress(80, text="AI extraction complete. Parsing data...")
+                    break 
+                    
+                except KeyError:
+                    progress_bar.empty()
+                    st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
+                    st.stop()
+                    
+                except Exception as e:
+                    if "429" in str(e) or "Quota" in str(e):
+                        if attempt < max_retries - 1:
+                            progress_bar.progress(40, text=f"API limit reached. Auto-retrying in {retry_delay}s... (Trial {attempt+1}/{max_retries})")
+                            time.sleep(retry_delay)
+                        else:
+                            progress_bar.empty()
+                            st.error("Failed after 3 trials. Rilex & wait for a minute, then try again.")
+                            st.stop() 
+                    else:
+                        progress_bar.empty()
+                        st.error(f"API Error: {e}")
+                        st.stop()
+            
+            if not extracted_data:
+                st.stop()
+            
+            # Fasa 3: Menyusun UI & CSV (80% - 100%)
+            progress_bar.progress(90, text="Building UI tables and CSV report...")
+            
+            # Asingkan Designation
+            designation_text = extracted_data.pop("Designation", "N/A")
+            if isinstance(designation_text, dict): 
+                designation_text = designation_text.get("value", "N/A")
+            designation_text = str(designation_text).upper()
+            
+            # Buang TCR_Calculation_Logic dari paparan jadual
+            extracted_data.pop("TCR_Calculation_Logic", None)
+            
+            st.success("Extraction Complete!")
+            progress_bar.progress(100, text="Done!")
+            time.sleep(0.5)
+            progress_bar.empty() # Hilangkan bar selepas selesai
+            
               # --- SISTEM AUTO-RETRY UNTUK ELAK LIMIT ---
                 max_retries = 3
                 retry_delay = 15 # saat
