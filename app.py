@@ -5,13 +5,21 @@ import json
 import time   
 import random 
 import csv 
-import io  
+import io
+import os
+from datetime import datetime
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="RG Datasheet Analyzer", page_icon="📄")
 st.title("📄 RG Datasheet Analyzer")
 st.write("Upload a datasheet (PDF) and the AI will extract the key specifications.")
-st.write("Analyzer last update on: 07/09/2026.")
+
+# Baca metadata tarikh fail app.py ini terakhir disunting
+file_path = __file__
+modified_timestamp = os.path.getmtime(file_path)
+last_update_date = datetime.fromtimestamp(modified_timestamp).strftime("%d/%m/%Y")
+
+st.write(f"Analyzer last update on: {last_update_date}.")
 
 # --- 2. INISIALISASI MEMORI (SESSION STATE) ---
 if "reset_key" not in st.session_state:
