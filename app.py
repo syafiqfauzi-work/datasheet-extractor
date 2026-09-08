@@ -84,6 +84,7 @@ if uploaded_file is not None:
             
             [PROCESSABILITY RULES]
             - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
+              * CRITICAL LOGIC: If the datasheet mentions traditional leaded components or soldering via "wave or dipping", select "THW". If it explicitly mentions "Through-Hole Reflow", "THR", or "Pin-in-Paste (PiP)", select "THR, PiP". If it is a standard surface mount chip/SMD, select "SMT".
             - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
             - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
             - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
