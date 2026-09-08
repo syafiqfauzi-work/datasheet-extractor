@@ -53,7 +53,7 @@ if uploaded_file is not None:
         progress_text = "Starting extraction process..."
         progress_bar = st.progress(0, text=progress_text)
         
-       try:
+        try:
             reader = PyPDF2.PdfReader(uploaded_file)
             
             # --- PENAPIS KESELAMATAN (SECURITY BYPASS) ---
