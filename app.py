@@ -33,7 +33,15 @@ with st.sidebar:
         st.info("No search record yet.")
   
 # --- 3 & 4. BUTANG RESET, INPUT MPN & UPLOAD ---
-if st.button("Extract Data", type="primary"):
+if st.button("🔄 Reset"):
+    st.session_state.reset_key += 1
+    st.rerun() 
+
+target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
+uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
+
+if uploaded_file is not None:
+    if st.button("Extract Data", type="primary"):
         progress_text = "Starting extraction process..."
         progress_bar = st.progress(0, text=progress_text)
         
@@ -55,69 +63,69 @@ if st.button("Extract Data", type="primary"):
             
             full_prompt = f"""
             Act as an expert electronics engineer. {mpn_instruction}
-                Review the provided datasheet text and accurately extract the requested information. 
-                
-                Extract these exact keys:
-                "Designation",
-                "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
-                "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
-                "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
-                "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
-                "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
-                "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
-                "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
-                "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
-                "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
+            Review the provided datasheet text and accurately extract the requested information. 
+            
+            Extract these exact keys:
+            "Designation",
+            "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
+            "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
+            "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
+            "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", 
+            "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
+            "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
+            "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
+            "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
+            "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"
 
-                Important Instructions:
-                - Return strictly a valid JSON object with the keys above.
-                - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
-                  * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V", "page": "2"}}
-                
-                [PROCESSABILITY RULES]
-                - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
-                - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
-                - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
-                - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
-                - FOR "ESS Suitable": Evaluate the extracted Storage Temperatures. If the Storage Temperature (Min) and Storage Temperature (Max) fall in the range of -20°C to 75°C, select "ESS released". Otherwise, select "not ESS released". If there is no information available for the Storage Temperature, strictly return "N/A".
-                - FOR "Washability" and "Varnishability": Select "Yes" or "No" if explicitly stated in the datasheet. If there is no information available regarding washability or varnishability, strictly return "N/A".
-                - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
-                
-                [GENERAL RULES]
-                - FOR "Resistance (Ohm)": Format the extracted resistance value using the industry-standard R/K/M notation where the letter acts as the decimal multiplier (R = 1, K = 1,000, M = 1,000,000). The letter replaces the decimal point. Examples: 5.11 Ω becomes "5R11", 97.6 Ω becomes "97R6", 9760 Ω becomes "9K76". Do not output standard decimals.
-                - FOR "TCR_Calculation_Logic": You MUST "think out loud" here before answering the Temperature Coefficient. 1) State the exact decimal resistance from the MPN (e.g., 5R11 = 5.11). 2) State the Tolerance. 3) Look at the datasheet text and copy the EXACT mathematical range that this resistance falls into (e.g., 1Ω ≤ R ≤ 10Ω).
-                - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
-                - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
-                - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
-                - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
-                  * Note 1: FOR "Height (Max)": If the datasheet provides a nominal value with a tolerance (e.g., X ± Y), you MUST calculate the maximum value by adding the positive tolerance to the nominal value (X + Y).
-                - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
-                - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
-                  * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
-                - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
-                - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
-                  [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
-                  * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
-                  * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
-                  * Note 3: For [Additional Info], analyze the datasheet descriptions deeply and append the following exact tags if their corresponding features are found (separate multiple tags with '/'). Evaluate these specific mappings:
-                    - "HF": High Frequency
-                    - "PP": High Pulse, Pulse Proof, or Anti Surge
-                    - "HP": High Power (power higher than standard)
-                    - "HV": High Voltage
-                    - "AS": Anti Sulfurated or Anti-Sulfur
-                    - "FT": Flexiterm, Flexible Termination, or Soft Termination
-                    - "SM": Special Mounting (Flange, Chassis, Stacked)
-                    - "AIN": Aluminium Nitride material
-                    - "AU": Gold (Au) contact surface
-                    - "AG": Silver (Ag) contact surface
-                    - "CU": Copper (Cu) contact surface
-                    - "AQ": Automotive Grade or AEC-Q200 qualified
-                  * Example output: 5R11 1% 200ppm 0.1W 0603 PP/AQ/AS
-                
-                Datasheet Text:
-                -----------------
-                {pdf_text}
-                """
+            Important Instructions:
+            - Return strictly a valid JSON object with the keys above.
+            - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
+              * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V", "page": "2"}}
+            
+            [PROCESSABILITY RULES]
+            - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
+            - FOR "St. Solder (Standard Solder)": Select ONLY ONE: "reflow soldering top / bottom", "reflow soldering top - only", "wave soldering bottom", "manually soldering / bonding", or "no soldering".
+            - FOR "Alt. Solder (Alternate Solder)": Select ONLY ONE: "selective hot air soldering", "wave soldering bottom", "selective wave soldering", "manually soldering", or "no soldering".
+            - FOR "Rep. Solder (Repair Solder)": Select ONLY ONE: "selective hot air soldering", "manually soldering", or "no soldering".
+            - FOR "ESS Suitable": Evaluate the extracted Storage Temperatures. If the Storage Temperature (Min) and Storage Temperature (Max) fall in the range of -20°C to 75°C, select "ESS released". Otherwise, select "not ESS released". If there is no information available for the Storage Temperature, strictly return "N/A".
+            - FOR "Washability" and "Varnishability": Select "Yes" or "No" if explicitly stated in the datasheet. If there is no information available regarding washability or varnishability, strictly return "N/A".
+            - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
+            
+            [GENERAL RULES]
+            - FOR "Resistance (Ohm)": Format the extracted resistance value using the industry-standard R/K/M notation where the letter acts as the decimal multiplier (R = 1, K = 1,000, M = 1,000,000). The letter replaces the decimal point. Examples: 5.11 Ω becomes "5R11", 97.6 Ω becomes "97R6", 9760 Ω becomes "9K76". Do not output standard decimals.
+            - FOR "TCR_Calculation_Logic": You MUST "think out loud" here before answering the Temperature Coefficient. 1) State the exact decimal resistance from the MPN (e.g., 5R11 = 5.11). 2) State the Tolerance. 3) Look at the datasheet text and copy the EXACT mathematical range that this resistance falls into (e.g., 1Ω ≤ R ≤ 10Ω).
+            - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
+            - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
+            - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
+            - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
+              * Note 1: FOR "Height (Max)": If the datasheet provides a nominal value with a tolerance (e.g., X ± Y), you MUST calculate the maximum value by adding the positive tolerance to the nominal value (X + Y).
+            - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
+            - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
+              * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
+            - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
+            - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
+              [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
+              * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
+              * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
+              * Note 3: For [Additional Info], analyze the datasheet descriptions deeply and append the following exact tags if their corresponding features are found (separate multiple tags with '/'). Evaluate these specific mappings:
+                - "HF": High Frequency
+                - "PP": High Pulse, Pulse Proof, or Anti Surge
+                - "HP": High Power (power higher than standard)
+                - "HV": High Voltage
+                - "AS": Anti Sulfurated or Anti-Sulfur
+                - "FT": Flexiterm, Flexible Termination, or Soft Termination
+                - "SM": Special Mounting (Flange, Chassis, Stacked)
+                - "AIN": Aluminium Nitride material
+                - "AU": Gold (Au) contact surface
+                - "AG": Silver (Ag) contact surface
+                - "CU": Copper (Cu) contact surface
+                - "AQ": Automotive Grade or AEC-Q200 qualified
+              * Example output: 5R11 1% 200ppm 0.1W 0603 PP/AQ/AS
+            
+            Datasheet Text:
+            -----------------
+            {pdf_text}
+            """
             
             # Fasa 2: Menghantar ke AI (30% - 80%)
             progress_bar.progress(40, text="Analyzing datasheet using AI... This may take a minute.")
@@ -183,138 +191,85 @@ if st.button("Extract Data", type="primary"):
             time.sleep(0.5)
             progress_bar.empty() # Hilangkan bar selepas selesai
             
-              # --- SISTEM AUTO-RETRY UNTUK ELAK LIMIT ---
-                max_retries = 3
-                retry_delay = 15 # saat
-                
-                extracted_data = None
-                
-                for attempt in range(max_retries):
-                    try:
-                        api_keys = st.secrets["GEMINI_API_KEY"].split(",")
-                        selected_key = random.choice(api_keys).strip()
-                        genai.configure(api_key=selected_key)
-                        model = genai.GenerativeModel('gemini-3.5-flash-lite')
-                        
-                        response = model.generate_content(
-                            full_prompt,
-                            generation_config={
-                                "temperature": 0.0,
-                                "response_mime_type": "application/json"
-                            }
-                        )
-                        extracted_data = json.loads(response.text)
-                        break 
-                        
-                    except KeyError:
-                        st.error("⚠️ Sila masukkan GEMINI_API_KEY di dalam Streamlit Secrets.")
-                        st.stop()
-                        
-                    except Exception as e:
-                        if "429" in str(e) or "Quota" in str(e):
-                            if attempt < max_retries - 1:
-                                st.warning(f"Exceed API limit. System will auto try in {retry_delay} seconds... (Trial {attempt+1}/{max_retries})")
-                                time.sleep(retry_delay)
-                            else:
-                                st.error("Failed after 3 trials. Rilex & wait for a minute, then try again.")
-                                st.stop() 
-                        else:
-                            st.error(f"API Error: {e}")
-                            st.stop()
-                
-                if not extracted_data:
-                    st.stop()
-                
-              # Tukar JSON dari AI
-                extracted_data = json.loads(response.text)
-                
-                # Asingkan Designation
-                designation_text = extracted_data.pop("Designation", "N/A")
-                if isinstance(designation_text, dict): 
-                    designation_text = designation_text.get("value", "N/A")
-                designation_text = str(designation_text).upper()
-                
-                st.success("Extraction Complete!")
-                
-                # Simpan History
-                rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
-                if rekod_mpn not in st.session_state.history:
-                    st.session_state.history.append(rekod_mpn)
-                
-                st.info(f"**Standardized Designation:** {designation_text}")
-                
-                # --- DEFINISI KATEGORI ---
-                keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
-                keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
-                keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
-                keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)"]
+            # Simpan History
+            rekod_mpn = target_mpn.upper() if target_mpn else "General (No MPN)"
+            if rekod_mpn not in st.session_state.history:
+                st.session_state.history.append(rekod_mpn)
+            
+            st.info(f"**Standardized Designation:** {designation_text}")
+            
+            # --- DEFINISI KATEGORI ---
+            keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
+            keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
+            keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
+            keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)"]
 
-                def build_table(keys_list, data_dict):
-                    specs, values, units, evidences, pages = [], [], [], [], []
-                    for key in keys_list:
-                        item = data_dict.get(key, {"value": "N/A", "evidence": "N/A", "page": "N/A"})
-                        if isinstance(item, str):
-                            val, ev, pg = item, "N/A", "N/A"
-                        else:
-                            val = item.get("value", "N/A")
-                            ev = item.get("evidence", "N/A")
-                            pg = item.get("page", "N/A")
+            def build_table(keys_list, data_dict):
+                specs, values, units, evidences, pages = [], [], [], [], []
+                for key in keys_list:
+                    item = data_dict.get(key, {"value": "N/A", "evidence": "N/A", "page": "N/A"})
+                    if isinstance(item, str):
+                        val, ev, pg = item, "N/A", "N/A"
+                    else:
+                        val = item.get("value", "N/A")
+                        ev = item.get("evidence", "N/A")
+                        pg = item.get("page", "N/A")
+                        
+                    # Asingkan Unit
+                    unit_str = "-"
+                    if key == "Temperature Coefficient" and val != "N/A":
+                        if "ppm/°C" in val:
+                            val, unit_str = val.replace("ppm/°C", "").strip(), "ppm/°C"
+                        elif "ppm/K" in val:
+                            val, unit_str = val.replace("ppm/K", "").strip(), "ppm/K"
+                        elif "ppm/C" in val: 
+                            val, unit_str = val.replace("ppm/C", "").strip(), "ppm/°C"
                             
-                        # Asingkan Unit
-                        unit_str = "-"
-                        if key == "Temperature Coefficient" and val != "N/A":
-                            if "ppm/°C" in val:
-                                val, unit_str = val.replace("ppm/°C", "").strip(), "ppm/°C"
-                            elif "ppm/K" in val:
-                                val, unit_str = val.replace("ppm/K", "").strip(), "ppm/K"
-                            elif "ppm/C" in val: 
-                                val, unit_str = val.replace("ppm/C", "").strip(), "ppm/°C"
-                                
-                        elif "(°C)" in key: key, unit_str = key.replace(" (°C)", ""), "°C"
-                        elif "(mm)" in key: key, unit_str = key.replace(" (mm)", ""), "mm"
-                        elif "(Ohm)" in key: key, unit_str = key.replace(" (Ohm)", ""), "Ohm"
-                        elif "(%)" in key: key, unit_str = key.replace(" (%)", ""), "%"
-                        elif "(V)" in key: key, unit_str = key.replace(" (V)", ""), "V"
-                        elif "(W)" in key: key, unit_str = key.replace(" (W)", ""), "W"
-                        elif "(ppm/K)" in key: key, unit_str = key.replace(" (ppm/K)", ""), "ppm/K"
-                        elif "(s)" in key: key, unit_str = key.replace(" (s)", ""), "s"
-                        elif "(cycles)" in key: key, unit_str = key.replace(" (cycles)", ""), "cycles"
-                        
-                        specs.append(key)
-                        values.append(val)
-                        units.append(unit_str)
-                        evidences.append(ev)
-                        pages.append(pg)
-                        
-                    return {"Specification": specs, "Extracted Value": values, "Unit": units, "Page": pages, "Source Evidence": evidences}
+                    elif "(°C)" in key: key, unit_str = key.replace(" (°C)", ""), "°C"
+                    elif "(mm)" in key: key, unit_str = key.replace(" (mm)", ""), "mm"
+                    elif "(Ohm)" in key: key, unit_str = key.replace(" (Ohm)", ""), "Ohm"
+                    elif "(%)" in key: key, unit_str = key.replace(" (%)", ""), "%"
+                    elif "(V)" in key: key, unit_str = key.replace(" (V)", ""), "V"
+                    elif "(W)" in key: key, unit_str = key.replace(" (W)", ""), "W"
+                    elif "(ppm/K)" in key: key, unit_str = key.replace(" (ppm/K)", ""), "ppm/K"
+                    elif "(s)" in key: key, unit_str = key.replace(" (s)", ""), "s"
+                    elif "(cycles)" in key: key, unit_str = key.replace(" (cycles)", ""), "cycles"
+                    
+                    specs.append(key)
+                    values.append(val)
+                    units.append(unit_str)
+                    evidences.append(ev)
+                    pages.append(pg)
+                    
+                return {"Specification": specs, "Extracted Value": values, "Unit": units, "Page": pages, "Source Evidence": evidences}
 
-                # --- 4 TABS UI ---
-                tab1, tab2, tab3, tab4 = st.tabs(["Top", "Library", "Processability", "Techn.Parameter"])
-                with tab1: st.table(build_table(keys_top, extracted_data))
-                with tab2: st.table(build_table(keys_library, extracted_data))
-                with tab3: st.table(build_table(keys_processability, extracted_data))
-                with tab4: st.table(build_table(keys_techn, extracted_data))
-                
-                # --- JANA FAIL EXCEL (CSV) ---
-                all_keys = keys_top + keys_library + keys_processability + keys_techn
-                all_data = build_table(all_keys, extracted_data)
-                
-                csv_buffer = io.StringIO()
-                csv_buffer.write('\ufeff') 
-                
-                writer = csv.writer(csv_buffer)
-                writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) 
-                
-                for i in range(len(all_data["Specification"])):
-                    writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Page"][i], all_data["Source Evidence"][i]])
-                
-                st.divider()
-                st.download_button(
-                    label="📥 Download Report (CSV)",
-                    data=csv_buffer.getvalue(),
-                    file_name=f"{rekod_mpn}_Report.csv",
-                    mime="text/csv"
-                )
-                
-            except Exception as e:
-                st.error(f"Error Happened!: {e}")
+            # --- 4 TABS UI ---
+            tab1, tab2, tab3, tab4 = st.tabs(["Top", "Library", "Processability", "Techn.Parameter"])
+            with tab1: st.table(build_table(keys_top, extracted_data))
+            with tab2: st.table(build_table(keys_library, extracted_data))
+            with tab3: st.table(build_table(keys_processability, extracted_data))
+            with tab4: st.table(build_table(keys_techn, extracted_data))
+            
+            # --- JANA FAIL EXCEL (CSV) ---
+            all_keys = keys_top + keys_library + keys_processability + keys_techn
+            all_data = build_table(all_keys, extracted_data)
+            
+            csv_buffer = io.StringIO()
+            csv_buffer.write('\ufeff') 
+            
+            writer = csv.writer(csv_buffer)
+            writer.writerow(["Specification", "Extracted Value", "Unit", "Page", "Source Evidence"]) 
+            
+            for i in range(len(all_data["Specification"])):
+                writer.writerow([all_data["Specification"][i], all_data["Extracted Value"][i], all_data["Unit"][i], all_data["Page"][i], all_data["Source Evidence"][i]])
+            
+            st.divider()
+            st.download_button(
+                label="📥 Download Report (CSV)",
+                data=csv_buffer.getvalue(),
+                file_name=f"{rekod_mpn}_Report.csv",
+                mime="text/csv"
+            )
+            
+        except Exception as e:
+            st.error(f"Error Happened!: {e}")
