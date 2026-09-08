@@ -88,7 +88,7 @@ if uploaded_file is not None:
             "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
             "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
             "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
-            "Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", 
+            "Resistance (Ohm)", "Tolerance (%)", "Row_Data_Extraction", "Voltage (V)", "Function", 
             "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
@@ -113,14 +113,15 @@ if uploaded_file is not None:
             [GENERAL RULES]
             - FOR "Resistance_Calculation_Logic": If a target MPN is provided, you MUST "think out loud" using pure STRING MANIPULATION, not math. 1) Find the 4-digit resistance code (e.g., 1828). 2) Let the first 3 digits be XYZ and the 4th digit be M (e.g., for 1828, XYZ=182, M=8). 3) Apply this STRICT STRING RULE based on M: If M='7' output "0RXYZ"; If M='8' output "XRYZ" (e.g., 1828 -> 1R82); If M='9' output "XYRZ" (e.g., 1829 -> 18R2); If M='0' output "XYZR"; If M='1' output "XKYZ" (e.g., 1821 -> 1K82); If M='2' output "XYKZ" (e.g., 1822 -> 18K2); If M='3' output "XYZK" (e.g., 1823 -> 182K); If M='4' output "XMYZ"; If M='5' output "XYMZ"; If M='6' output "XYZM". Write out the step-by-step substitution.
             - FOR "Resistance (Ohm)": Extract ONLY the final string generated from the XYZ rule in "Resistance_Calculation_Logic". ABSOLUTELY NO DECIMALS.
-            - FOR "TCR_Calculation_Logic": You MUST "think out loud". 1) State the decimal resistance. 2) State the Tolerance. 3) Find the EXACT row for the Part No. (e.g., ERJP06) in the Ratings table. 4) Within that specific row, match the Tolerance sub-block. 5) Mathematically evaluate the resistance against the ranges provided (e.g., 1000 Ohms is >= 33 Ohms, so it matches "33Ω ≤ R", NOT R < 33Ω). 6) State the exact T.C.R assigned to that specific range.
+            - FOR "Row_Data_Extraction": PDF tables are flattened. Find the target Part No. (e.g., ERJP06). The values immediately following it are typically: [Size] [Power] [Ambient Temp] [Terminal Temp] [Limiting Voltage] [Overload Voltage]. (e.g., "ERJP06 (0805) 0.50 70 115 400 600"). Isolate and write down this exact sequence for your specific MPN to prevent grabbing data from the wrong row.
+            - FOR "Voltage (V)": Look STRICTLY at the isolated sequence in "Row_Data_Extraction". Extract the "Limiting element voltage" (which is typically the 4th numeric value after the package size). Example: If the sequence is "0.50 70 115 400", the voltage is 400. Do NOT grab voltages from other part numbers.
+            - FOR "TCR_Calculation_Logic": Look at the isolated data for your specific Part No. 1) State the exact resistance in Ohms. 2) Find the T.C.R. sub-ranges for this part. 3) Evaluate the resistance mathematically. Example: 1000 Ohms is greater than 33 Ohms, so it matches the condition "33Ω ≤ R : ±100" (NOT R < 33Ω). 4) State the correct T.C.R.
             - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
             - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
             - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
             - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
               * Note 1: FOR "Height (Max)": If the datasheet provides a nominal value with a tolerance (e.g., X ± Y), you MUST calculate the maximum value by adding the positive tolerance to the nominal value (X + Y).
             - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
-            - FOR "Voltage (V)": CRITICAL - PDF tables are flattened. You MUST scan the "Ratings" table, locate the exact identifier for the target package size (e.g., "ERJP06"), and trace its specific row to find the "Limiting element voltage". Do NOT grab values belonging to other part numbers like ERJPA3 or ERJP03.
             - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
             - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
@@ -211,6 +212,7 @@ if uploaded_file is not None:
             # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
             extracted_data.pop("Resistance_Calculation_Logic", None)
+            extracted_data.pop("Row_Data_Extraction", None)
             
             st.success("Extraction Complete!")
             progress_bar.progress(100, text="Done!")
