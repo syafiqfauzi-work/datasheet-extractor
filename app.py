@@ -61,7 +61,7 @@ if uploaded_file is not None:
                 try:
                     reader.decrypt("") # Buka kunci AES dengan kata laluan kosong
                 except Exception:
-                    st.error("Fail PDF ini dikunci dengan kata laluan penuh. Sila cari versi datasheet yang tidak di-encrypt.")
+                    st.error("PDF file is encrypted with Password. Please find un-encrypted PDF.")
                     st.stop()
             # ---------------------------------------------
             
@@ -95,9 +95,10 @@ if uploaded_file is not None:
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
             "Designation"
 
-           Important Instructions:
+            Important Instructions:
             - Return strictly a valid JSON object with the keys above.
-            - CRITICAL JSON RULE: Do NOT use unescaped double quotes (") inside any of your text explanations or values. Use single quotes (') instead to prevent breaking the JSON structure.
+            - CRITICAL JSON RULE 1: Do NOT use unescaped double quotes (") inside any of your text explanations or values. Use single quotes (') instead.
+            - CRITICAL JSON RULE 2: Do NOT include raw newline characters (\n), carriage returns (\r), or tabs (\t) inside any JSON string values. Replace them with standard spaces.
             - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
             
             [PROCESSABILITY RULES]
@@ -173,7 +174,7 @@ if uploaded_file is not None:
                             "response_mime_type": "application/json"
                         }
                     )
-                    extracted_data = json.loads(response.text)
+                    extracted_data = json.loads(response.text, strict=False)
                     progress_bar.progress(80, text="AI extraction complete. Parsing data...")
                     break 
                     
