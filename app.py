@@ -89,7 +89,7 @@ if uploaded_file is not None:
             "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
             "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
             "Resistance (Ohm)", "Tolerance (%)", "Row_Data_Extraction", "Voltage (V)", "Function", 
-            "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
+            "Power_Extraction_Logic", "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
@@ -122,7 +122,9 @@ if uploaded_file is not None:
             - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
               * Note 1: FOR "Height (Max)": If the datasheet provides a nominal value with a tolerance (e.g., X ± Y), you MUST calculate the maximum value by adding the positive tolerance to the nominal value (X + Y).
             - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
-            - FOR VOLTAGE AND POWER: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
+            - FOR "Power_Extraction_Logic": 1) Locate the Power/Rated Dissipation values for the specific package size. 2) Search the ENTIRE datasheet to check if there is a table distinguishing between "Standard" and "Extended" operation modes. 3) If both modes exist (e.g., 0.125 W vs 0.25 W), you MUST explicitly reject the Extended value and choose the Standard value. Write down your logical deduction.
+            - FOR "Power Consumption (W)": Extract ONLY the final numeric value determined in "Power_Extraction_Logic". Convert fractions to decimals if needed (e.g., 1/8 to 0.125).
+            - FOR VOLTAGE: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
             - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
             - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
@@ -213,6 +215,7 @@ if uploaded_file is not None:
             extracted_data.pop("TCR_Calculation_Logic", None)
             extracted_data.pop("Resistance_Calculation_Logic", None)
             extracted_data.pop("Row_Data_Extraction", None)
+            extracted_data.pop("Power_Extraction_Logic", None)
             
             st.success("Extraction Complete!")
             progress_bar.progress(100, text="Done!")
