@@ -95,10 +95,10 @@ if uploaded_file is not None:
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
             "Designation"
 
-            Important Instructions:
+           Important Instructions:
             - Return strictly a valid JSON object with the keys above.
+            - CRITICAL JSON RULE: Do NOT use unescaped double quotes (") inside any of your text explanations or values. Use single quotes (') instead to prevent breaking the JSON structure.
             - FOR ALL OTHER KEYS: Return a nested JSON object with three fields: "value" (the string value, or "N/A"), "evidence" (a short exact quote from the text), and "page" (the exact Page number where it was found, e.g., "1", or "N/A").
-              * Example format -> "Voltage (V)": {{"value": "50", "evidence": "Operating voltage, Umax AC/DC, STANDARD 50 V", "page": "2"}}
             
             [PROCESSABILITY RULES]
             - FOR "Kind of Mounting": Select ONLY ONE: "SMT (surface-mounting technology)", "THR, PiP (through-hole technology)", "press-fit", "THW (through-hole technology)", "ceramic substrate technology (Chip microwave)", "none", or "fine press-fit".
