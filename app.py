@@ -93,7 +93,7 @@ if uploaded_file is not None:
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
-            "Manufacturer", "Designation"
+            "Manufacturer", "Designation", "Additional Information"
 
             Important Instructions:
             - Return strictly a valid JSON object with the keys above.
@@ -135,7 +135,7 @@ if uploaded_file is not None:
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
               * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11"). CRITICAL FOR JUMPERS: If the component is a Jumper (or has 0 Ohm resistance), you MUST explicitly set [Resistance] to "0R" at the very beginning of the designation. Do NOT leave it blank. For jumpers, you should replace the [Power] section with the maximal applicable current (e.g., "40A").
               * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
-              * Note 3: For [Additional Info], scan the datasheet and append the following exact tags if their corresponding features are found (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ. If no additional tags apply, leave this section COMPLETELY EMPTY (do NOT write "N/A" at the end of the designation). Evaluate these specific mappings:
+              * Note 3: For [Additional Info] in Designation, scan the datasheet and append ONLY these exact tags if found (separate with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU. (CRITICAL: Do NOT include "AQ" or Automotive Grade in this designation string). If no tags apply, leave empty. Evaluate these specific mappings:
                 - "HF": High Frequency (CRITICAL: Do NOT append this tag if the letters "HF" in the datasheet refer to "Halogen Free" or are associated with RoHS/environmental compliance).
                 - "PP": High Pulse, Pulse Proof, or Anti Surge
                 - "HP": High Power (power higher than standard)
@@ -147,10 +147,10 @@ if uploaded_file is not None:
                 - "AU": Gold (Au) contact surface
                 - "AG": Silver (Ag) contact surface
                 - "CU": Copper (Cu) contact surface
-                - "AQ": Automotive Grade or AEC-Q200 qualified
-              * * Note 4: For [Temperature coefficient], use ONLY the numeric value followed by "PPM". You MUST drop the "/K" or "/°C" completely. Example: use "50PPM", NEVER "50PPM/K" or "50PPM/°C".
-              * Example output: 5R11 1% 200PPM 0.1W 0603 PP/AQ/AS
+              * Note 4: For [Temperature coefficient], use ONLY the numeric value followed by "PPM". You MUST drop the "/K" or "/°C" completely. Example: use "50PPM", NEVER "50PPM/K" or "50PPM/°C".
+              * Example output: 5R11 1% 200PPM 0.1W 0603 PP/AS
             - FOR "Manufacturer": Identify the manufacturer of the component from the datasheet. You MUST select strictly from this exact list: "Analog Devices, Inc.", "Barry Industries Inc.", "Bourns Inc.", "Caddock Electronics, Inc", "Diconex", "EMC TECHNIK & CONSULTING GmbH", "Fenghua (H.K.) Electronics Ltd.", "IMS - International Manufacturing S", "Kyocera AVX Components Ltd.", "Mini-Circuits, Inc.", "Panasonic Corporation", "RES-NET Microwave, Inc.", "Smiths Interconnect", "Susumu Co., LTD", "TDK Corporation", "TTM Technologies Inc.", "Vishay Intertechnology, Inc.", or "Yageo Corporation". If the exact manufacturer is not in this list, return "Unknown".
+            - FOR "Additional Information": Scan the datasheet for special qualifications. If the component is AEC-Q200 qualified or explicitly stated as Automotive Grade, you MUST extract and output "AQ". You may also list other special features here if found. If nothing is found, return "N/A".
             
             Datasheet Text:
             -----------------
@@ -244,9 +244,12 @@ if uploaded_file is not None:
             # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
             designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
 
-            # --- PENAPIS KETAT: Buang tag HF (Halogen Free False Positive) ---
+            # --- PENAPIS KETAT: Buang tag HF dan AQ dari Designation ---
             if "HF" in designation_text and "high frequency" not in pdf_text.lower() and "microwave" not in pdf_text.lower():
-                designation_text = designation_text.replace("HF", "").replace("  ", " ").replace("//", "/").strip(" /")
+                designation_text = designation_text.replace("HF", "")
+            
+            # Paksa buang AQ dari Designation (kerana ia kini berada di Additional Information)
+            designation_text = designation_text.replace("AQ", "").replace("  ", " ").replace("//", "/").strip(" /")
             
             # --- TALLY PACKAGE TYPE ---
             # Paksa 'Package Type (EIA)' menyalin bulat-bulat data dari 'Package Type'
@@ -278,7 +281,7 @@ if uploaded_file is not None:
             keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
             keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
             keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
-            keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Function", "Package Type", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)"]
+            keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Package Type", "Function", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)", "Additional Information"]
 
             def build_table(keys_list, data_dict):
                 specs, values, units, evidences, pages = [], [], [], [], []
