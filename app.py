@@ -112,7 +112,7 @@ if uploaded_file is not None:
             - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
             
             [GENERAL RULES]
-            - FOR "Resistance_Calculation_Logic": If a target MPN is provided, you MUST "think out loud" using pure STRING MANIPULATION, not math. 1) Find the 4-digit resistance code (e.g., 1828). 2) Let the first 3 digits be XYZ and the 4th digit be M (e.g., for 1828, XYZ=182, M=8). 3) Apply this STRICT STRING RULE based on M: If M='7' output "0RXYZ"; If M='8' output "XRYZ" (e.g., 1828 -> 1R82); If M='9' output "XYRZ" (e.g., 1829 -> 18R2); If M='0' output "XYZR"; If M='1' output "XKYZ" (e.g., 1821 -> 1K82); If M='2' output "XYKZ" (e.g., 1822 -> 18K2); If M='3' output "XYZK" (e.g., 1823 -> 182K); If M='4' output "XMYZ"; If M='5' output "XYMZ"; If M='6' output "XYZM". Write out the step-by-step substitution.
+            - FOR "Resistance_Calculation_Logic": If a target MPN is provided, determine the resistance code. 1) If the code contains an 'R' (e.g., R300, R3000, 1R50), extract it. If it starts with 'R', prepend a '0' (e.g., R300 -> 0R300). Then remove trailing zeros at the end (e.g., 0R300 -> 0R3, 1R50 -> 1R5). 2) If it is a standard numeric code (e.g., 1828), let XYZ=182, M=8. If M='7' output "0RXYZ"; If M='8' output "XRYZ"; If M='9' output "XYRZ"; If M='0' output "XYZR"; If M='1' output "XKYZ"; If M='2' output "XYKZ"; If M='3' output "XYZK"; If M='4' output "XMYZ"; If M='5' output "XYMZ"; If M='6' output "XYZM".
             - FOR "Resistance (Ohm)": Extract ONLY the final string generated from the XYZ rule in "Resistance_Calculation_Logic". ABSOLUTELY NO DECIMALS.
             - FOR "Row_Data_Extraction": PDF tables are flattened. Find the target Part No. (e.g., ERJP06). The values immediately following it are typically: [Size] [Power] [Ambient Temp] [Terminal Temp] [Limiting Voltage] [Overload Voltage]. (e.g., "ERJP06 (0805) 0.50 70 115 400 600"). Isolate and write down this exact sequence for your specific MPN to prevent grabbing data from the wrong row.
             - FOR "Voltage (V)": Look STRICTLY at the isolated sequence in "Row_Data_Extraction". Extract the "Limiting element voltage" (which is typically the 4th numeric value after the package size). Example: If the sequence is "0.50 70 115 400", the voltage is 400. Do NOT grab voltages from other part numbers.
@@ -217,6 +217,28 @@ if uploaded_file is not None:
             if isinstance(manufacturer_text, dict): 
                 manufacturer_text = manufacturer_text.get("value", "Unknown")
             # -----------------------------
+            
+            # --- STANDARDIZE RESISTANCE (e.g., R300 -> 0R3) ---
+            if "Resistance (Ohm)" in extracted_data and isinstance(extracted_data["Resistance (Ohm)"], dict):
+                res_val = str(extracted_data["Resistance (Ohm)"].get("value", "")).upper()
+                if res_val and res_val != "N/A":
+                    original_res = res_val
+                    
+                    # Tambah '0' jika bermula dengan 'R' (contoh: R300 -> 0R300)
+                    if res_val.startswith("R"):
+                        res_val = "0" + res_val
+                        
+                    # Buang sifar di belakang (trailing zeros) jika ada huruf R, K, atau M
+                    if any(char in res_val for char in ["R", "K", "M"]):
+                        res_val = res_val.rstrip("0")
+                    
+                    # Kemaskini jadual UI
+                    extracted_data["Resistance (Ohm)"]["value"] = res_val
+                    
+                    # Kemaskini Designation supaya sepadan (hanya ubah perkataan rintangan pertama)
+                    if designation_text.startswith(original_res):
+                        designation_text = designation_text.replace(original_res, res_val, 1)
+            # -------------------------------------------------
             
             # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
             designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
