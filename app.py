@@ -212,6 +212,10 @@ if uploaded_file is not None:
             # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
             designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
 
+            # --- PENAPIS KETAT: Buang tag HF (Halogen Free False Positive) ---
+            if "HF" in designation_text and "high frequency" not in pdf_text.lower() and "microwave" not in pdf_text.lower():
+                designation_text = designation_text.replace("HF", "").replace("  ", " ").replace("//", "/").strip(" /")
+            
             # --- TALLY PACKAGE TYPE ---
             # Paksa 'Package Type (EIA)' menyalin bulat-bulat data dari 'Package Type'
             if "Package Type" in extracted_data and isinstance(extracted_data["Package Type"], dict):
