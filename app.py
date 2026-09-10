@@ -152,8 +152,8 @@ if uploaded_file is not None or spec_file is not None:
             - FOR VOLTAGE: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
               * Note 2: If the datasheet specifies a formula like "(P x R)1/2" instead of a direct number, calculate it mathematically using your final Power (W) and Resistance (Ohm) values. Round the final calculated value to exactly 4 decimal places (e.g., "0.5477") for the "value" field. In the "evidence" field, write your step-by-step calculation (e.g., "Formula: (P x R)^1/2 -> sqrt(1.0W x 0.3Ohm)").
-            - FOR "Pitch_Calculation_Logic": CRITICAL: Do NOT just grab the first Terminal Width (T) you see. 1) Extract nominal Length (L) in mm. 2) Check if the datasheet lists multiple Terminal (T) widths based on Resistance Range. 3) If YES, you MUST explicitly write down ALL ranges and their T (mm) values first (e.g., "Range 1: 0.001-0.0069 -> T=1.47; Range 2: 0.007-0.5 -> T=0.508"). 4) State the MPN's exact resistance (e.g., 0.3 Ohm). 5) Explicitly state which range it matches. 6) Select the correct T (mm) for that range. 7) Calculate Pitch = L - T.
-            - FOR "Pitch (Footprint) (mm)": Extract ONLY the final calculated numeric value from "Pitch_Calculation_Logic" for the "value" field. For the "evidence" field, you MUST write your exact mathematical step-by-step calculation (e.g., "Pitch = Length (5.08) - Terminal (0.508)"). If the terminal width is completely missing from the datasheet, output "N/A" for both.
+            - FOR "Pitch_Calculation_Logic": CRITICAL: 1) Extract nominal Length (L) in mm. 2) Check if Terminal (T) varies by Resistance Range. 3) To match the MPN resistance (e.g., 0.015) to the correct range, you MUST align decimals by adding zeros (e.g., 0.0150 vs 0.0069. Since 150 > 69, 0.015 is GREATER). 4) Select the correct T. 5) Output EXACTLY in this format: "L - T" (e.g., "5.08 - 0.508"). DO NOT compute.
+            - FOR "Pitch (Footprint) (mm)": Output "N/A" for the "value" field. For the "evidence" field, extract ONLY the exact formula string generated in "Pitch_Calculation_Logic" (e.g., "5.08 - 0.508").
             - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
               * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11"). CRITICAL FOR JUMPERS: If the component is a Jumper (or has 0 Ohm resistance), you MUST explicitly set [Resistance] to "0R" at the very beginning of the designation. Do NOT leave it blank. For jumpers, you should replace the [Power] section with the maximal applicable current (e.g., "40A").
@@ -280,6 +280,23 @@ if uploaded_file is not None or spec_file is not None:
             if "Package Type" in extracted_data and isinstance(extracted_data["Package Type"], dict):
                 extracted_data["Package Type (EIA)"] = extracted_data["Package Type"].copy()
 
+            # --- PYTHON MATH OVERRIDE UNTUK PITCH ---
+            if "Pitch (Footprint) (mm)" in extracted_data:
+                pitch_item = extracted_data["Pitch (Footprint) (mm)"]
+                if isinstance(pitch_item, dict):
+                    calc_str = str(pitch_item.get("evidence", ""))
+                    if "-" in calc_str:
+                        try:
+                            # Bersihkan tag spec sheet jika ada
+                            clean_str = calc_str.replace("(From Spec Sheet)", "").replace("Priority Spec Sheet", "").strip(" ()")
+                            parts = clean_str.split("-")
+                            if len(parts) == 2:
+                                pitch_val = float(parts[0].strip()) - float(parts[1].strip())
+                                extracted_data["Pitch (Footprint) (mm)"]["value"] = str(round(pitch_val, 4))
+                                extracted_data["Pitch (Footprint) (mm)"]["evidence"] = calc_str
+                        except Exception:
+                            pass
+            
             # --- PYTHON MATH OVERRIDE UNTUK HEIGHT ---
             if "Height_Calculation_Logic" in extracted_data:
                 calc_item = extracted_data["Height_Calculation_Logic"]
