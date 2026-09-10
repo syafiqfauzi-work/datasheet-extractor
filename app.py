@@ -93,7 +93,7 @@ if uploaded_file is not None:
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
-            "Manufacturer", "Designation", "Additional Information"
+            "Manufacturer", "Designation", "Additional Information", "Quantity"
 
             Important Instructions:
             - Return strictly a valid JSON object with the keys above.
@@ -151,6 +151,7 @@ if uploaded_file is not None:
               * Example output: 5R11 1% 200PPM 0.1W 0603 PP/AS
             - FOR "Manufacturer": Identify the manufacturer of the component from the datasheet. You MUST select strictly from this exact list: "Analog Devices, Inc.", "Barry Industries Inc.", "Bourns Inc.", "Caddock Electronics, Inc", "Diconex", "EMC TECHNIK & CONSULTING GmbH", "Fenghua (H.K.) Electronics Ltd.", "IMS - International Manufacturing S", "Kyocera AVX Components Ltd.", "Mini-Circuits, Inc.", "Panasonic Corporation", "RES-NET Microwave, Inc.", "Smiths Interconnect", "Susumu Co., LTD", "TDK Corporation", "TTM Technologies Inc.", "Vishay Intertechnology, Inc.", or "Yageo Corporation". If the exact manufacturer is not in this list, return "Unknown".
             - FOR "Additional Information": Scan the datasheet for special qualifications. If the component is AEC-Q200 qualified or explicitly stated as Automotive Grade, you MUST extract and output "AQ". You may also list other special features here if found. If nothing is found, return "N/A".
+            - FOR "Quantity": Determine the number of isolated resistor elements or circuits within the component package. For a standard single chip resistor, strictly return "1". For resistor arrays or networks, return the exact number of elements (e.g., "2", "4", "8") based on the circuit diagram or features.
             
             Datasheet Text:
             -----------------
@@ -281,7 +282,7 @@ if uploaded_file is not None:
             keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
             keys_library = ["Length (mm)", "Width (mm)", "Height (Max)", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins"]
             keys_processability = ["Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"]
-            keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Package Type", "Function", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)", "Additional Information"]
+            keys_techn = ["Resistance (Ohm)", "Tolerance (%)", "Voltage (V)", "Package Type", "Quantity", "Function", "Power Consumption (W)", "Temperature Coefficient", "Height (mm)", "Additional Information"]
 
             def build_table(keys_list, data_dict):
                 specs, values, units, evidences, pages = [], [], [], [], []
