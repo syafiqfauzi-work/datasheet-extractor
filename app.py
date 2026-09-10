@@ -247,7 +247,7 @@ if uploaded_file is not None:
                 st.session_state.history.append(rekod_mpn)
             
             st.info(f"**Standardized Designation:** {designation_text}")
-            st.info(f"🏢 **Manufacturer:** {manufacturer_text}")
+            st.caption(f"🏢 **Manufacturer:** {manufacturer_text}")
             
             # --- DEFINISI KATEGORI ---
             keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
