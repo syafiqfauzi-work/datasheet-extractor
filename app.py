@@ -93,7 +93,7 @@ if uploaded_file is not None:
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
             "Alt. Solder (Alternate Solder)", "Rep. Solder (Repair Solder)", "ESS Suitable", 
             "Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)",
-            "Designation"
+            "Manufacturer", "Designation"
 
             Important Instructions:
             - Return strictly a valid JSON object with the keys above.
@@ -148,6 +148,7 @@ if uploaded_file is not None:
                 - "AQ": Automotive Grade or AEC-Q200 qualified
               * * Note 4: For [Temperature coefficient], use ONLY the numeric value followed by "PPM". You MUST drop the "/K" or "/°C" completely. Example: use "50PPM", NEVER "50PPM/K" or "50PPM/°C".
               * Example output: 5R11 1% 200PPM 0.1W 0603 PP/AQ/AS
+            - FOR "Manufacturer": Identify the manufacturer of the component from the datasheet. You MUST select strictly from this exact list: "Analog Devices, Inc.", "Barry Industries Inc.", "Bourns Inc.", "Caddock Electronics, Inc", "Diconex", "EMC TECHNIK & CONSULTING GmbH", "Fenghua (H.K.) Electronics Ltd.", "IMS - International Manufacturing S", "Kyocera AVX Components Ltd.", "Mini-Circuits, Inc.", "Panasonic Corporation", "RES-NET Microwave, Inc.", "Smiths Interconnect", "Susumu Co., LTD", "TDK Corporation", "TTM Technologies Inc.", "Vishay Intertechnology, Inc.", or "Yageo Corporation". If the exact manufacturer is not in this list, return "Unknown".
             
             Datasheet Text:
             -----------------
@@ -210,6 +211,12 @@ if uploaded_file is not None:
                 designation_text = designation_text.get("value", "N/A")
             designation_text = str(designation_text).upper()
             
+            # --- ASINGKAN MANUFACTURER ---
+            manufacturer_text = extracted_data.pop("Manufacturer", "Unknown")
+            if isinstance(manufacturer_text, dict): 
+                manufacturer_text = manufacturer_text.get("value", "Unknown")
+            # -----------------------------
+            
             # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
             designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
 
@@ -240,6 +247,7 @@ if uploaded_file is not None:
                 st.session_state.history.append(rekod_mpn)
             
             st.info(f"**Standardized Designation:** {designation_text}")
+            st.caption(f"🏢 **Manufacturer:** {manufacturer_text}")
             
             # --- DEFINISI KATEGORI ---
             keys_top = ["Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)"]
