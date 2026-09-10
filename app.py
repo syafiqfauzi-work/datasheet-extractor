@@ -46,36 +46,58 @@ if st.button("🔄 Reset"):
     st.rerun() 
 
 target_mpn = st.text_input("Enter specific MPN (Optional but recommended for catalogs):", key=f"mpn_{st.session_state.reset_key}")
-uploaded_file = st.file_uploader("Upload Datasheet PDF here", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
 
-if uploaded_file is not None:
+# --- UI DUAL UPLOAD ---
+col1, col2 = st.columns(2)
+with col1:
+    uploaded_file = st.file_uploader("1. Upload Datasheet PDF (General)", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
+with col2:
+    spec_file = st.file_uploader("2. Upload Spec Sheet PDF (Optional - Priority)", type=["pdf"], key=f"spec_{st.session_state.reset_key}")
+
+if uploaded_file is not None or spec_file is not None:
     if st.button("Extract Data", type="primary"):
         progress_text = "Starting extraction process..."
         progress_bar = st.progress(0, text=progress_text)
         
         try:
-            reader = PyPDF2.PdfReader(uploaded_file)
-            
-            # --- PENAPIS KESELAMATAN (SECURITY BYPASS) ---
-            if reader.is_encrypted:
-                try:
-                    reader.decrypt("") # Buka kunci AES dengan kata laluan kosong
-                except Exception:
-                    st.error("PDF file is encrypted with Password. Please find un-encrypted PDF.")
-                    st.stop()
-            # ---------------------------------------------
-            
             pdf_text = ""
-            total_pages = len(reader.pages)
             
-            # Fasa 1: Membaca PDF (0% - 30%)
-            for i, page in enumerate(reader.pages):
-                text = page.extract_text()
-                if text:
-                    pdf_text += f"\n\n--- PAGE {i + 1} ---\n{text}"
+            # --- BACA SPEC SHEET DAHULU (JIKA ADA) ---
+            if spec_file is not None:
+                spec_reader = PyPDF2.PdfReader(spec_file)
+                if spec_reader.is_encrypted:
+                    try:
+                        spec_reader.decrypt("")
+                    except Exception:
+                        pass
+                spec_text = "".join([page.extract_text() for page in spec_reader.pages if page.extract_text()])
+                pdf_text += f"\n\n=== CRITICAL PRIORITY: SPECIFIC SPEC SHEET ===\n{spec_text}\n\n=== GENERAL DATASHEET ===\n"
+            
+            # --- BACA DATASHEET SEPERTI BIASA ---
+            if uploaded_file is not None:
+                reader = PyPDF2.PdfReader(uploaded_file)
                 
-                prog_val = int(((i + 1) / total_pages) * 30)
-                progress_bar.progress(prog_val, text=f"Reading PDF... (Page {i+1}/{total_pages})")
+                # --- PENAPIS KESELAMATAN (SECURITY BYPASS) ---
+                if reader.is_encrypted:
+                    try:
+                        reader.decrypt("") # Buka kunci AES dengan kata laluan kosong
+                    except Exception:
+                        st.error("General PDF file is encrypted with Password. Please find un-encrypted PDF.")
+                        st.stop()
+                # ---------------------------------------------
+                
+                total_pages = len(reader.pages)
+                
+                # Fasa 1: Membaca PDF (0% - 30%)
+                for i, page in enumerate(reader.pages):
+                    text = page.extract_text()
+                    if text:
+                        pdf_text += f"\n\n--- PAGE {i + 1} ---\n{text}"
+                    
+                    prog_val = int(((i + 1) / total_pages) * 30)
+                    progress_bar.progress(prog_val, text=f"Reading PDF... (Page {i+1}/{total_pages})")
+            else:
+                progress_bar.progress(30, text="Reading Spec Sheet PDF...")
             
             mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
             
@@ -112,6 +134,7 @@ if uploaded_file is not None:
             - FOR REFLOW ("Max Reflow Cycle (cycles)", "Max Reflow Time (s)", "Max Reflow Temp (°C)"): Extract ONLY the raw nominal numerical value. Discard any text, units (e.g., seconds, s, °C, cycles), and tolerances (e.g., for "10 ± 1 seconds immersion time", return "10"; for "260 °C ± 5 °C", return "260").
             
             [GENERAL RULES]
+            - MASTER RULE FOR SPEC SHEETS: If the text contains a "CRITICAL PRIORITY: SPECIFIC SPEC SHEET" section, you MUST extract all available values directly from that section first. If a value (like Power, Voltage, Resistance, or Dimensions) is explicitly stated in the Spec Sheet, you are ALLOWED to skip the complex table logic (like "Row_Data_Extraction" or "Power_Extraction_Logic") and simply write "Directly extracted from Priority Spec Sheet" in the calculation/evidence field. Only rely on the General Datasheet for parameters missing from the Spec Sheet.
             - FOR "Resistance_Calculation_Logic": If a target MPN is provided, determine the resistance code. 1) If the code contains an 'R' (e.g., R300, R3000, 1R50), extract it. If it starts with 'R', prepend a '0' (e.g., R300 -> 0R300). Then remove trailing zeros at the end (e.g., 0R300 -> 0R3, 1R50 -> 1R5). 2) If it is a standard numeric code (e.g., 1828), let XYZ=182, M=8. If M='7' output "0RXYZ"; If M='8' output "XRYZ"; If M='9' output "XYRZ"; If M='0' output "XYZR"; If M='1' output "XKYZ"; If M='2' output "XYKZ"; If M='3' output "XYZK"; If M='4' output "XMYZ"; If M='5' output "XYMZ"; If M='6' output "XYZM".
             - FOR "Resistance (Ohm)": Extract ONLY the final string generated from the XYZ rule in "Resistance_Calculation_Logic". ABSOLUTELY NO DECIMALS.
             - FOR "Row_Data_Extraction": PDF tables are flattened. Find the target Part No. (e.g., ERJP06). The values immediately following it are typically: [Size] [Power] [Ambient Temp] [Terminal Temp] [Limiting Voltage] [Overload Voltage]. (e.g., "ERJP06 (0805) 0.50 70 115 400 600"). Isolate and write down this exact sequence for your specific MPN to prevent grabbing data from the wrong row.
