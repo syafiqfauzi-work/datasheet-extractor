@@ -143,8 +143,8 @@ if uploaded_file is not None or spec_file is not None:
             - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
             - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
             - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
-            - FOR "Height_Calculation_Logic": 1) Extract the raw height dimension string. 2) If it contains dual units like "inches (mm)", you MUST isolate ONLY the millimeter portion completely inside the parentheses (e.g., from "0.025 ± 0.010 (0.635 ± 0.254)", isolate "0.635 ± 0.254"). 3) Identify the nominal mm value (X) and the positive mm tolerance (Y). 4) Mathematically calculate X + Y. Write out the step-by-step addition to avoid cross-unit mixing.
-            - FOR "Height (Max)": Extract ONLY the final calculated numeric value from "Height_Calculation_Logic".
+            - FOR "Height_Calculation_Logic": 1) Extract the raw height dimension string. 2) If it contains dual units like "inches (mm)", you MUST isolate ONLY the millimeter portion completely inside the parentheses (e.g., from "0.025 ± 0.010 (0.635 ± 0.254)", isolate "0.635 ± 0.254"). 3) Identify the nominal mm value (X) and the positive mm tolerance (Y). 4) Output EXACTLY in this format: "X + Y" (e.g., "0.635 + 0.254"). DO NOT compute.
+            - FOR "Height (Max)": Output "N/A" (This will be calculated externally).
             - FOR "Height (mm)": Extract ONLY the nominal mm value identified in "Height_Calculation_Logic", discarding any tolerance. Do NOT extract values labeled "T" (Thickness/Terminal) if "H" (Height) is available.
             - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
             - FOR "Power_Extraction_Logic": CRITICAL PRIORITY CHECK: If a "CRITICAL PRIORITY: SPECIFIC SPEC SHEET" section exists and explicitly lists a "Power" value (e.g., "1 W (70C)"), you MUST stop searching, extract this exact value, and write "Directly extracted from Priority Spec Sheet" as your logic. DO NOT calculate or compare anything else. If NO spec sheet is provided, THEN proceed to standard logic: 1) Identify target package size. 2) List all Wattage (W) values in the General Datasheet for this size. 3) Select the LOWER numeric value as Standard mode and write the comparison.
@@ -279,6 +279,24 @@ if uploaded_file is not None or spec_file is not None:
             # Paksa 'Package Type (EIA)' menyalin bulat-bulat data dari 'Package Type'
             if "Package Type" in extracted_data and isinstance(extracted_data["Package Type"], dict):
                 extracted_data["Package Type (EIA)"] = extracted_data["Package Type"].copy()
+
+            # --- PYTHON MATH OVERRIDE UNTUK HEIGHT ---
+            if "Height_Calculation_Logic" in extracted_data:
+                calc_item = extracted_data["Height_Calculation_Logic"]
+                if isinstance(calc_item, dict):
+                    calc_str = str(calc_item.get("value", ""))
+                    if "+" in calc_str:
+                        try:
+                            parts = calc_str.split("+")
+                            h_max = float(parts[0].strip()) + float(parts[1].strip())
+                            
+                            if "Height (Max)" not in extracted_data or not isinstance(extracted_data["Height (Max)"], dict):
+                                extracted_data["Height (Max)"] = {"value": "N/A", "evidence": "N/A", "page": "N/A"}
+                            
+                            extracted_data["Height (Max)"]["value"] = str(round(h_max, 4))
+                            extracted_data["Height (Max)"]["evidence"] = calc_str
+                        except Exception:
+                            pass
             
             # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
