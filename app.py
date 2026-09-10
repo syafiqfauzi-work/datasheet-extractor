@@ -130,7 +130,7 @@ if uploaded_file is not None:
             - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
             - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
-              * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11" or "5.11R"). If Resistance is 0 Ohm, use the maximal applicable current instead of Power.
+              * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11"). CRITICAL FOR JUMPERS: If the component is a Jumper (or has 0 Ohm resistance), you MUST explicitly set [Resistance] to "0R" at the very beginning of the designation. Do NOT leave it blank. For jumpers, you should replace the [Power] section with the maximal applicable current (e.g., "40A").
               * Note 2: For [RAW Package EIA], use ONLY the bare numeric code (e.g., 0201, 0402). Do NOT include the "EIA" prefix or the "*" asterisk in this designation string.
               * Note 3: For [Additional Info], scan the datasheet and append the following exact tags if their corresponding features are found (separate multiple tags with '/'): HF, PP, HP, HV, AS, FT, SM, AIN, AU, AG, CU, AQ. If no additional tags apply, leave this section COMPLETELY EMPTY (do NOT write "N/A" at the end of the designation). Evaluate these specific mappings:
                 - "HF": High Frequency
