@@ -211,6 +211,11 @@ if uploaded_file is not None:
             
             # PENAPIS KETAT: Buang unit /K atau /°C pada PPM
             designation_text = designation_text.replace("PPM/K", "PPM").replace("PPM/°C", "PPM").replace("PPM/C", "PPM")
+
+            # --- TALLY PACKAGE TYPE ---
+            # Paksa 'Package Type (EIA)' menyalin bulat-bulat data dari 'Package Type'
+            if "Package Type" in extracted_data and isinstance(extracted_data["Package Type"], dict):
+                extracted_data["Package Type (EIA)"] = extracted_data["Package Type"].copy()
             
             # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
