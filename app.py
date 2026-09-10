@@ -152,8 +152,8 @@ if uploaded_file is not None or spec_file is not None:
             - FOR VOLTAGE: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
               * Note 2: If the datasheet specifies a formula like "(P x R)1/2" instead of a direct number, calculate it mathematically using your final Power (W) and Resistance (Ohm) values. Round the final calculated value to exactly 4 decimal places (e.g., "0.5477") for the "value" field. In the "evidence" field, write your step-by-step calculation (e.g., "Formula: (P x R)^1/2 -> sqrt(1.0W x 0.3Ohm)").
-            - FOR "Pitch_Calculation_Logic": CRITICAL: 1) Extract nominal Length (L) in mm. 2) Check if Terminal (T) varies by Resistance Range. 3) To match the MPN resistance (e.g., 0.015) to the correct range, you MUST align decimals by adding zeros (e.g., 0.0150 vs 0.0069. Since 150 > 69, 0.015 is GREATER). 4) Select the correct T. 5) Output EXACTLY in this format: "L - T" (e.g., "5.08 - 0.508"). DO NOT compute.
-            - FOR "Pitch (Footprint) (mm)": Output "N/A" for the "value" field. For the "evidence" field, extract ONLY the exact formula string generated in "Pitch_Calculation_Logic" (e.g., "5.08 - 0.508").
+           - FOR "Pitch_Calculation_Logic": YOU MUST OUTPUT A MATRIX. 1) State nominal Length (L) in mm. 2) List ALL Terminal Widths (T) and their exact Resistance Ranges line-by-line (e.g., "Range 1: 0.001 to 0.0069, T = 1.47 | Range 2: 0.007 to 0.5, T = 0.508"). 3) State the target MPN resistance. 4) State exactly which range it falls into by comparing decimals. 5) Output the final formula AT THE VERY END in exactly this format: "Formula: L - T" (e.g., "Formula: 5.08 - 0.508").
+            - FOR "Pitch (Footprint) (mm)": Output "N/A" for the "value" field. For the "evidence" field, extract ONLY the exact formula string generated at the very end of "Pitch_Calculation_Logic" (e.g., "5.08 - 0.508"). Discard the matrix text.
             - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
               * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11"). CRITICAL FOR JUMPERS: If the component is a Jumper (or has 0 Ohm resistance), you MUST explicitly set [Resistance] to "0R" at the very beginning of the designation. Do NOT leave it blank. For jumpers, you should replace the [Power] section with the maximal applicable current (e.g., "40A").
@@ -287,13 +287,14 @@ if uploaded_file is not None or spec_file is not None:
                     calc_str = str(pitch_item.get("evidence", ""))
                     if "-" in calc_str:
                         try:
-                            # Bersihkan tag spec sheet jika ada
-                            clean_str = calc_str.replace("(From Spec Sheet)", "").replace("Priority Spec Sheet", "").strip(" ()")
+                            # Bersihkan tag spec sheet dan label formula
+                            clean_str = calc_str.replace("(From Spec Sheet)", "").replace("Priority Spec Sheet", "")
+                            clean_str = clean_str.replace("Formula:", "").strip(" ()")
                             parts = clean_str.split("-")
                             if len(parts) == 2:
                                 pitch_val = float(parts[0].strip()) - float(parts[1].strip())
                                 extracted_data["Pitch (Footprint) (mm)"]["value"] = str(round(pitch_val, 4))
-                                extracted_data["Pitch (Footprint) (mm)"]["evidence"] = calc_str
+                                extracted_data["Pitch (Footprint) (mm)"]["evidence"] = clean_str
                         except Exception:
                             pass
             
