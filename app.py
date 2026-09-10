@@ -87,7 +87,7 @@ if uploaded_file is not None:
             "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
             "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
             "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
-            "Package Type", "Package Type (EIA)", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
+            "Package Type", "Package Type (EIA)", "Pitch_Calculation_Logic", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
             "Resistance (Ohm)", "Tolerance (%)", "Row_Data_Extraction", "Voltage (V)", "Function", 
             "Power_Extraction_Logic", "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
             "Kind of Mounting", "Washability", "Varnishability", "St. Solder (Standard Solder)", 
@@ -127,7 +127,8 @@ if uploaded_file is not None:
             - FOR "Power Consumption (W)": Extract ONLY the final FIRST numeric value determined in "Power_Extraction_Logic". Convert fractions to decimals if needed.
             - FOR VOLTAGE: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
-            - FOR PITCH: "Pitch (Footprint) (mm)" refers STRICTLY to the physical center-to-center distance between the component's terminals/leads. Do NOT extract packaging, tape, or reel pitch dimensions. If terminal pitch is not specified, use "N/A".
+            - FOR "Pitch_Calculation_Logic": 1) Locate the main "Dimensions" table for the target MPN. 2) Extract the nominal Length (e.g., L = 3.20). 3) Extract the nominal Terminal Width/Electrode dimension (typically labeled A, a, b, or c. For WJC1206, A = 0.50). 4) Calculate the center-to-center pitch using this exact formula: Pitch = Length - Terminal Width (e.g., 3.20 - 0.50 = 2.70). Do NOT extract the land pattern gap "P" for this.
+            - FOR "Pitch (Footprint) (mm)": Extract ONLY the final calculated numeric value from "Pitch_Calculation_Logic". If the terminal width is completely missing from the datasheet, output "N/A".
             - FOR THE "Designation" KEY: Construct a string following EXACTLY this format: 
               [Resistance] [Tolerance] [Temperature coefficient] [Power] [RAW Package EIA] [Additional Info]
               * Note 1: For [Resistance], strictly use the R/K/M formatted value (e.g., use "5R11", do NOT use "5.11"). CRITICAL FOR JUMPERS: If the component is a Jumper (or has 0 Ohm resistance), you MUST explicitly set [Resistance] to "0R" at the very beginning of the designation. Do NOT leave it blank. For jumpers, you should replace the [Power] section with the maximal applicable current (e.g., "40A").
@@ -226,6 +227,7 @@ if uploaded_file is not None:
             extracted_data.pop("Resistance_Calculation_Logic", None)
             extracted_data.pop("Row_Data_Extraction", None)
             extracted_data.pop("Power_Extraction_Logic", None)
+            extracted_data.pop("Pitch_Calculation_Logic", None)
             
             st.success("Extraction Complete!")
             progress_bar.progress(100, text="Done!")
