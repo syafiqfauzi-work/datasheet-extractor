@@ -86,7 +86,7 @@ if uploaded_file is not None:
             Extract these exact keys:
             "Operating Temperature (Max) (°C)", "Operating Temperature (Min) (°C)", 
             "Storage Temperature (Max) (°C)", "Storage Temperature (Min) (°C)", 
-            "Length (mm)", "Width (mm)", "Height (Max)", "Height (mm)", 
+            "Length (mm)", "Width (mm)", "Height_Calculation_Logic", "Height (Max)", "Height (mm)", 
             "Package Type", "Package Type (EIA)", "Pitch_Calculation_Logic", "Pitch (Footprint) (mm)", "Number of Pins", "Resistance_Calculation_Logic", 
             "Resistance (Ohm)", "Tolerance (%)", "Row_Data_Extraction", "Voltage (V)", "Function", 
             "Power_Extraction_Logic", "Power Consumption (W)", "TCR_Calculation_Logic", "Temperature Coefficient",
@@ -120,8 +120,9 @@ if uploaded_file is not None:
             - FOR "Temperature Coefficient": Look STRICTLY at the mathematical range you just determined in "TCR_Calculation_Logic". Extract ONLY the specific T.C.R. value assigned to that exact range. Extract the numerical value TOGETHER WITH its exact unit (e.g., "200 ppm/°C"). Discard "±".
             - FOR DIMENSIONS (Length, Width, Height (mm)): If a value includes a tolerance (e.g., 0.60 ± 0.03), extract ONLY the nominal base value (e.g., 0.60) and discard the tolerance completely.
             - FOR THE "Function" KEY: Select ONLY ONE: "Thin Film", "Thick Film", "Metal Foil", "Wire-wound", or "Carbon Film".
-            - FOR HEIGHT DIMENSIONS: Strictly extract values associated with the label "H" or "Height". Do NOT extract values from "T" (Thickness/Terminal).
-              * Note 1: FOR "Height (Max)": If the datasheet provides a nominal value with a tolerance (e.g., X ± Y), you MUST calculate the maximum value by adding the positive tolerance to the nominal value (X + Y).
+            - FOR "Height_Calculation_Logic": 1) Extract the raw height dimension string. 2) If it contains dual units like "inches (mm)", you MUST isolate ONLY the millimeter portion completely inside the parentheses (e.g., from "0.025 ± 0.010 (0.635 ± 0.254)", isolate "0.635 ± 0.254"). 3) Identify the nominal mm value (X) and the positive mm tolerance (Y). 4) Mathematically calculate X + Y. Write out the step-by-step addition to avoid cross-unit mixing.
+            - FOR "Height (Max)": Extract ONLY the final calculated numeric value from "Height_Calculation_Logic".
+            - FOR "Height (mm)": Extract ONLY the nominal mm value identified in "Height_Calculation_Logic", discarding any tolerance. Do NOT extract values labeled "T" (Thickness/Terminal) if "H" (Height) is available.
             - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
             - FOR "Power_Extraction_Logic": CRITICAL - Datasheets often highlight a higher "Extended" power on Page 1, but hide the lower "Standard" power in a later table. 1) Identify the target package size (e.g., 0603 or CRCW0603). 2) Scan the ENTIRE document and list all Wattage (W) values associated with this specific size. 3) If you find multiple different values (e.g., 0.10 W and 0.125 W), you MUST mathematically compare them and strictly select the LOWER numeric value as the Standard mode. Write out your comparison step-by-step (e.g., "Found 0.10 and 0.125. 0.10 < 0.125. Selected 0.10").
             - FOR "Power Consumption (W)": Extract ONLY the final FIRST numeric value determined in "Power_Extraction_Logic". Convert fractions to decimals if needed.
@@ -235,6 +236,7 @@ if uploaded_file is not None:
             extracted_data.pop("Row_Data_Extraction", None)
             extracted_data.pop("Power_Extraction_Logic", None)
             extracted_data.pop("Pitch_Calculation_Logic", None)
+            extracted_data.pop("Height_Calculation_Logic", None)
             
             st.success("Extraction Complete!")
             progress_bar.progress(100, text="Done!")
