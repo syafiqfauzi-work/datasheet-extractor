@@ -301,11 +301,16 @@ if uploaded_file is not None or spec_file is not None:
                         extracted_data["Power Consumption (W)"]["evidence"] = f"Min value filtered from: {wattages} W"
                         
                         # --- KEMASKINI DESIGNATION ---
-                        # Jika AI terlanjur letak nilai Extended di Designation, Python akan ganti dengan nilai Standard
+                        # Jika AI terlanjur letak nilai Extended di Designation, Python akan ganti dengan Standard
                         if min_power != max_power:
                             designation_text = designation_text.replace(f"{max_power}W", f"{min_power}W")
                             if max_power.is_integer():
                                 designation_text = designation_text.replace(f"{int(max_power)}W", f"{min_power}W")
+
+            # --- PYTHON MATH OVERRIDE UNTUK PITCH ---
+            if "Pitch (Footprint) (mm)" in extracted_data:
+                pitch_item = extracted_data["Pitch (Footprint) (mm)"]
+                if isinstance(pitch_item, dict):
                     calc_str = str(pitch_item.get("evidence", ""))
                     if "-" in calc_str:
                         try:
@@ -337,7 +342,7 @@ if uploaded_file is not None or spec_file is not None:
                             extracted_data["Height (Max)"]["evidence"] = calc_str
                         except Exception:
                             pass
-            
+                            
             # Buang kertas conteng AI dari paparan jadual
             extracted_data.pop("TCR_Calculation_Logic", None)
             extracted_data.pop("Resistance_Calculation_Logic", None)
