@@ -147,8 +147,8 @@ if uploaded_file is not None or spec_file is not None:
             - FOR "Height (Max)": Output "N/A" (This will be calculated externally).
             - FOR "Height (mm)": Extract ONLY the nominal mm value identified in "Height_Calculation_Logic", discarding any tolerance. Do NOT extract values labeled "T" (Thickness/Terminal) if "H" (Height) is available.
             - FOR "Package Type": Return the value EXACTLY in this format: EIA[Package EIA Size]*. For example, if the size is 0201, return "EIA0201*". Do NOT extract shipping or delivery packaging methods (e.g., Tape and Reel, Paper Taping Reel, Bulk, Tube).
-            - FOR "Power_Extraction_Logic": CRITICAL PRIORITY CHECK: If a "CRITICAL PRIORITY: SPECIFIC SPEC SHEET" exists, use it. IF NO SPEC SHEET: 1) IGNORE the general "Technical Specifications" summary table on Page 1. DO NOT grab the first Rated Dissipation you see. 2) You MUST search the rest of the document for the exact anchor phrase "MAXIMUM RESISTANCE CHANGE" or an "Operation mode" table. 3) Locate your target package size (e.g., 0414, 0207) inside THAT specific detailed table. 4) Extract ONLY the wattage listed explicitly under the "Standard" column (e.g., 0.65 W for 0414). 5) If (and only if) no detailed operation mode table exists anywhere, fall back to the lowest general rated power. Output your logic (e.g., "Found in Operation Mode table: Standard = 0.65 W").
-            - FOR "Power Consumption (W)": Extract ONLY the final FIRST numeric value determined in "Power_Extraction_Logic". Convert fractions to decimals if needed.
+            - FOR "Power_Extraction_Logic": 1) Identify target package size. 2) Scan ALL pages. Find EVERY wattage (W) value associated with this size (Check both "Technical Specifications" and "MAXIMUM RESISTANCE CHANGE" tables). 3) Output a list of ALL found wattages. You MUST include the 'W' unit for each. Example output: "1.0 W, 0.65 W, 1.0 W". DO NOT pick one, list ALL of them.
+            - FOR "Power Consumption (W)": Output "N/A" for the "value" (This will be intercepted and calculated externally).
             - FOR VOLTAGE: If the datasheet lists multiple operation modes (e.g., "Standard" vs "Extended"), strictly extract the values for the "Standard" operation mode. Do not extract the Extended or maximum rating if a Standard mode is available.
               * Note 1: If Power is provided as a fraction (e.g., 1/20, 1/4, 1/8), you MUST calculate and return it strictly as a DECIMAL (e.g., 0.05, 0.25, 0.125) for both the "Power Consumption (W)" key and the "Designation" string.
               * Note 2: If the datasheet specifies a formula like "(P x R)1/2" instead of a direct number, calculate it mathematically using your final Power (W) and Resistance (Ohm) values. Round the final calculated value to exactly 4 decimal places (e.g., "0.5477") for the "value" field. In the "evidence" field, write your step-by-step calculation (e.g., "Formula: (P x R)^1/2 -> sqrt(1.0W x 0.3Ohm)").
@@ -280,10 +280,32 @@ if uploaded_file is not None or spec_file is not None:
             if "Package Type" in extracted_data and isinstance(extracted_data["Package Type"], dict):
                 extracted_data["Package Type (EIA)"] = extracted_data["Package Type"].copy()
 
-            # --- PYTHON MATH OVERRIDE UNTUK PITCH ---
-            if "Pitch (Footprint) (mm)" in extracted_data:
-                pitch_item = extracted_data["Pitch (Footprint) (mm)"]
-                if isinstance(pitch_item, dict):
+            # --- PYTHON MATH OVERRIDE UNTUK POWER ---
+            if "Power_Extraction_Logic" in extracted_data:
+                power_item = extracted_data["Power_Extraction_Logic"]
+                if isinstance(power_item, dict):
+                    # Gabungkan value & evidence
+                    power_str = str(power_item.get("value", "")) + " " + str(power_item.get("evidence", ""))
+                    import re
+                    # Cari semua corak nombor yang diikuti dengan 'W' (Cth: 1.0 W, 0.65W)
+                    wattages = re.findall(r"(\d+(?:\.\d+)?)\s*[Ww]", power_str)
+                    if wattages:
+                        valid_powers = [float(w) for w in wattages]
+                        min_power = min(valid_powers)
+                        max_power = max(valid_powers)
+                        
+                        if "Power Consumption (W)" not in extracted_data or not isinstance(extracted_data["Power Consumption (W)"], dict):
+                            extracted_data["Power Consumption (W)"] = {"value": "N/A", "evidence": "N/A", "page": "N/A"}
+                        
+                        extracted_data["Power Consumption (W)"]["value"] = str(min_power)
+                        extracted_data["Power Consumption (W)"]["evidence"] = f"Min value filtered from: {wattages} W"
+                        
+                        # --- KEMASKINI DESIGNATION ---
+                        # Jika AI terlanjur letak nilai Extended di Designation, Python akan ganti dengan nilai Standard
+                        if min_power != max_power:
+                            designation_text = designation_text.replace(f"{max_power}W", f"{min_power}W")
+                            if max_power.is_integer():
+                                designation_text = designation_text.replace(f"{int(max_power)}W", f"{min_power}W")
                     calc_str = str(pitch_item.get("evidence", ""))
                     if "-" in calc_str:
                         try:
