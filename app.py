@@ -15,7 +15,8 @@ from datetime import datetime, timezone, timedelta
 from asi_rules import render_asi, asi_csv_rows
 from asi_alternatives import render_alternatives
 from dms_lookup import dms_sidebar, render_duplicate_check
-from ui_style import apply_style, render_summary, callout, md_safe
+from ui_style import (apply_style, render_summary, callout, md_safe,
+                      brand, page_title, theme_toggle, card, split, segmented)
 from extract_rules import detect_manufacturer, detect_commodity_group, quantity_from
 from rules_registry import determine_asi_for_cg
 from rules_rt import rt_designation
@@ -28,10 +29,9 @@ from rules_c import resolve_manufacturer_c, determine_cg_c, cg_label_c, clean_de
 from processability import apply_processability
 
 # --- 1. SETTING TAJUK WEB ---
-st.set_page_config(page_title="Datasheet Analyzer", page_icon="📄", layout="wide", initial_sidebar_state="expanded")
-# mod gelap: nilai suis (disimpan dalam URL ?dark=true supaya kekal bila buka semula / bookmark)
-DARK = st.session_state.get("dark", str(st.query_params.get("dark", "")).lower() in ("true", "1"))
-apply_style(dark=DARK)
+st.set_page_config(page_title="Datasheet Analyzer", page_icon="📄", layout="wide", initial_sidebar_state="auto")
+# mod gelap/terang: tema Streamlit sendiri (.streamlit/config.toml) - butang bulan/matahari di top bar
+apply_style()
 
 # --- TARIKH KEMASKINI KOD (dari commit GitHub terakhir) ---
 GITHUB_REPO = "syafiqfauzi-work/RG-datasheet-extractor"
@@ -76,22 +76,15 @@ def effective_commodity():
     job_ = st.session_state.get("job")
     return manual or (job_["auto_commodity"] if job_ else None)
 
-# --- HEADER: kiri = tajuk + kapsyen | kanan = (mod gelap + tarikh kemaskini) di atas, commodity di bawah ---
-h_left, h_right = st.columns(2, vertical_alignment="center")
-with h_left:
-    st.title("Datasheet Analyzer")
-    st.caption("Upload a datasheet (PDF) and the AI will extract the key specifications.")
-with h_right:
-    with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center", gap="medium"):
-        st.toggle(":material/dark_mode: Dark mode", key="dark", bind="query-params")
+# --- TOP BAR: kiri = jenama | kanan = tarikh kemaskini + butang mod gelap/terang ---
+with st.container(key="ds_topbar", horizontal=True, vertical_alignment="center", horizontal_alignment="distribute"):
+    brand("Component Engineering")
+    with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center",
+                      gap="small", width="content"):
         st.markdown(f'<span class="update-pill">🕒 Last update: {get_last_update()} SGT</span>',
                     unsafe_allow_html=True, width="content")
-    with st.container(horizontal=True, horizontal_alignment="right", vertical_alignment="center", gap="small"):
-        st.markdown('<span class="hdr-label">Commodity</span>', unsafe_allow_html=True, width="content")
-        st.segmented_control("Commodity", list(COMMODITY_OPTIONS), key="commodity_choice", required=True,
-                             label_visibility="collapsed",
-                             help="Auto-detect reads the datasheet. Pick R*, L* or C* to override it.")
-st.divider()
+        theme_toggle()
+page_title("Datasheet Analyzer", notice="Upload a datasheet (PDF) and the AI will extract the key specifications.")
 
 # --- PANGGILAN MODEL AI (dengan retry) ---
 def call_model(full_prompt, progress_bar):
@@ -483,116 +476,124 @@ if "reset_key" not in st.session_state:
 # --- SIDEBAR: DMS DATABASE ---
 dms_df = dms_sidebar()
 
-# --- 3 & 4. INPUT MPN, RESET & UPLOAD ---
-c_mpn, c_reset = st.columns([5, 1], vertical_alignment="bottom")
-with c_mpn:
-    target_mpn = st.text_input("MPN (optional, recommended for catalogs)", key=f"mpn_{st.session_state.reset_key}")
-with c_reset:
-    if st.button("Reset", key="reset_btn", use_container_width=True):
-        st.session_state.reset_key += 1
-        st.session_state.pop("job", None)
-        for com in COMMODITIES:
-            st.session_state.pop(f"cat_choice_{com}", None)
-        st.rerun()
+# --- 3 & 4. COMMODITY, INPUT MPN, RESET & UPLOAD (satu kad) ---
+with card("input"):
+    # COMMODITY: tab bergaris bawah (Auto-detect lalai; pilih R* / L* / C* untuk tukar)
+    with segmented("commodity"):
+        st.segmented_control("Commodity", list(COMMODITY_OPTIONS), key="commodity_choice", required=True,
+                             label_visibility="collapsed",
+                             help="Auto-detect reads the datasheet. Pick R*, L* or C* to override it.")
+    c_mpn, c_reset = st.columns([5, 1], vertical_alignment="bottom")
+    with c_mpn:
+        target_mpn = st.text_input("MPN (optional, recommended for catalogs)", key=f"mpn_{st.session_state.reset_key}")
+    with c_reset:
+        if st.button("Reset", key="reset_btn", width="stretch"):
+            st.session_state.reset_key += 1
+            st.session_state.pop("job", None)
+            for com in COMMODITIES:
+                st.session_state.pop(f"cat_choice_{com}", None)
+            st.rerun()
 
-# --- UI DUAL UPLOAD ---
-col1, col2 = st.columns(2)
-with col1:
-    uploaded_file = st.file_uploader("1. Upload Datasheet PDF (General)", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
-with col2:
-    spec_file = st.file_uploader("2. Upload Spec Sheet PDF (Optional - Priority)", type=["pdf"], key=f"spec_{st.session_state.reset_key}")
+    # --- UI DUAL UPLOAD (dua panel bersebelahan, bertindan di skrin kecil) ---
+    with split("uploads"):
+        col1, col2 = st.columns(2)
+        with col1:
+            uploaded_file = st.file_uploader("1. Upload Datasheet PDF (General)", type=["pdf"], key=f"pdf_{st.session_state.reset_key}")
+        with col2:
+            spec_file = st.file_uploader("2. Upload Spec Sheet PDF (Optional - Priority)", type=["pdf"], key=f"spec_{st.session_state.reset_key}")
 
-c_btn, c_status = st.columns([1, 4], vertical_alignment="center")
-status_box = c_status.empty()
-if uploaded_file is not None or spec_file is not None:
-    with c_btn:
-        run_extract = st.button("Extract Data", type="primary", use_container_width=True)
-    if run_extract:
-        progress_bar = status_box.progress(0, text="Starting extraction process...")
-        try:
-            pdf_text = read_pdfs(uploaded_file, spec_file, progress_bar)
-            mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
+    c_btn, c_status = st.columns([1, 4], vertical_alignment="center")
+    status_box = c_status.empty()
+    if uploaded_file is not None or spec_file is not None:
+        with c_btn:
+            run_extract = st.button("Extract Data", type="primary", width="stretch")
+        if run_extract:
+            progress_bar = status_box.progress(0, text="Starting extraction process...")
+            try:
+                pdf_text = read_pdfs(uploaded_file, spec_file, progress_bar)
+                mpn_instruction = f"Focus ONLY on the specifications for this specific MPN: {target_mpn}." if target_mpn else "Extract the general specifications from the datasheet."
             
-            # --- COMMODITY (R*/L*) dahulu, kemudian CATEGORY dalam commodity itu (pengguna boleh tukar kemudian) ---
-            file_names = [f.name for f in (uploaded_file, spec_file) if f is not None]
-            auto_com, _ = detect_commodity(pdf_text, file_names)
-            com = COMMODITY_OPTIONS[st.session_state.commodity_choice] or auto_com
-            category, cat_confident = COMMODITIES[com]["detect"](pdf_text, file_names)
+                # --- COMMODITY (R*/L*) dahulu, kemudian CATEGORY dalam commodity itu (pengguna boleh tukar kemudian) ---
+                file_names = [f.name for f in (uploaded_file, spec_file) if f is not None]
+                auto_com, _ = detect_commodity(pdf_text, file_names)
+                com = COMMODITY_OPTIONS[st.session_state.commodity_choice] or auto_com
+                category, cat_confident = COMMODITIES[com]["detect"](pdf_text, file_names)
             
-            progress_bar.progress(40, text=f"Analyzing datasheet using AI ({com} · {category})... This may take a minute.")
-            raw = call_model(build_prompt_any(category, mpn_instruction, pdf_text, com), progress_bar)
-            if not raw:
-                st.stop()
+                progress_bar.progress(40, text=f"Analyzing datasheet using AI ({com} · {category})... This may take a minute.")
+                raw = call_model(build_prompt_any(category, mpn_instruction, pdf_text, com), progress_bar)
+                if not raw:
+                    st.stop()
             
-            # Jika kategori tidak pasti, AI mengesahkan; ekstrak semula hanya jika AI nampak kategori lain
-            cats = COMMODITIES[com]["categories"]
-            if category == COMMODITIES[com]["default"] and not cat_confident:
-                ai_cat = raw.get("Category", "")
-                if isinstance(ai_cat, dict):
-                    ai_cat = ai_cat.get("value", "")
-                ai_cat = str(ai_cat).strip()
-                if ai_cat in cats and ai_cat != category:
-                    progress_bar.progress(60, text=f"Category looks like {ai_cat}: extracting again...")
-                    category = ai_cat
-                    raw = call_model(build_prompt_any(category, mpn_instruction, pdf_text, com), progress_bar)
-                    if not raw:
-                        st.stop()
-            raw.pop("Category", None)
+                # Jika kategori tidak pasti, AI mengesahkan; ekstrak semula hanya jika AI nampak kategori lain
+                cats = COMMODITIES[com]["categories"]
+                if category == COMMODITIES[com]["default"] and not cat_confident:
+                    ai_cat = raw.get("Category", "")
+                    if isinstance(ai_cat, dict):
+                        ai_cat = ai_cat.get("value", "")
+                    ai_cat = str(ai_cat).strip()
+                    if ai_cat in cats and ai_cat != category:
+                        progress_bar.progress(60, text=f"Category looks like {ai_cat}: extracting again...")
+                        category = ai_cat
+                        raw = call_model(build_prompt_any(category, mpn_instruction, pdf_text, com), progress_bar)
+                        if not raw:
+                            st.stop()
+                raw.pop("Category", None)
             
-            # Simpan kerja supaya menukar Commodity / Category tidak perlu muat naik semula
-            st.session_state["job"] = {"pdf_text": pdf_text, "file_names": file_names, "mpn": target_mpn,
-                                       "mpn_instruction": mpn_instruction, "auto_commodity": auto_com,
-                                       "auto_cat": {com: category}, "raw": {f"{com}|{category}": raw}}
-            st.session_state[f"cat_choice_{com}"] = category   # lalai = keputusan AI
-            progress_bar.progress(100, text="Done!")
-            time.sleep(0.5)
-            status_box.empty()
-            st.session_state["_rerun"] = True   # kemaskini tajuk / commodity di baris atas
-        except Exception as e:
-            st.error(f"Error Happened!: {e}")
+                # Simpan kerja supaya menukar Commodity / Category tidak perlu muat naik semula
+                st.session_state["job"] = {"pdf_text": pdf_text, "file_names": file_names, "mpn": target_mpn,
+                                           "mpn_instruction": mpn_instruction, "auto_commodity": auto_com,
+                                           "auto_cat": {com: category}, "raw": {f"{com}|{category}": raw}}
+                st.session_state[f"cat_choice_{com}"] = category   # lalai = keputusan AI
+                progress_bar.progress(100, text="Done!")
+                time.sleep(0.5)
+                status_box.empty()
+                st.session_state["_rerun"] = True   # kemaskini tajuk / commodity di baris atas
+            except Exception as e:
+                st.error(f"Error Happened!: {e}")
 
 if st.session_state.pop("_rerun", False):
     st.rerun()
 
 job = st.session_state.get("job")
 if job:
-    com = effective_commodity()
-    cats = COMMODITIES[com]["categories"]
-    # kategori lalai untuk commodity yang baru dipilih: kata kunci sahaja (tiada panggilan AI)
-    if com not in job["auto_cat"]:
-        job["auto_cat"][com] = COMMODITIES[com]["detect"](job["pdf_text"], job["file_names"])[0]
-    cat_key = f"cat_choice_{com}"
-    if st.session_state.get(cat_key) not in cats:
-        st.session_state[cat_key] = job["auto_cat"][com]
+    with card("results"):
+        com = effective_commodity()
+        cats = COMMODITIES[com]["categories"]
+        # kategori lalai untuk commodity yang baru dipilih: kata kunci sahaja (tiada panggilan AI)
+        if com not in job["auto_cat"]:
+            job["auto_cat"][com] = COMMODITIES[com]["detect"](job["pdf_text"], job["file_names"])[0]
+        cat_key = f"cat_choice_{com}"
+        if st.session_state.get(cat_key) not in cats:
+            st.session_state[cat_key] = job["auto_cat"][com]
 
-    # --- DROPDOWN CATEGORY: lalai ikut AI, pengguna boleh tukar jika AI tersilap ---
-    c_cat, c_note = st.columns([2, 3], vertical_alignment="bottom")
-    with c_cat:
-        chosen = st.selectbox(f"Category ({com})", list(cats), key=cat_key)
-    with c_note:
-        com_txt = (f"{com} auto-detected" if COMMODITY_OPTIONS[st.session_state.commodity_choice] is None
-                   else f"{com} chosen manually (auto-detect: {job['auto_commodity']})")
-        ai = html.escape(job["auto_cat"][com])
-        text = (f"✅ Extraction complete · {com_txt} · category detected: {ai}" if chosen == job["auto_cat"][com]
-                else f"✏️ Manual category · {com_txt} · detected: {ai}")
-        st.markdown(f'<p class="status-line">{text}</p>', unsafe_allow_html=True)
+        # --- DROPDOWN CATEGORY: lalai ikut AI, pengguna boleh tukar jika AI tersilap ---
+        c_cat, c_note = st.columns([2, 3], vertical_alignment="bottom")
+        with c_cat:
+            chosen = st.selectbox(f"Category ({com})", list(cats), key=cat_key)
+        with c_note:
+            com_txt = (f"{com} auto-detected" if COMMODITY_OPTIONS[st.session_state.commodity_choice] is None
+                       else f"{com} chosen manually (auto-detect: {job['auto_commodity']})")
+            ai = html.escape(job["auto_cat"][com])
+            text = (f"✅ Extraction complete · {com_txt} · category detected: {ai}" if chosen == job["auto_cat"][com]
+                    else f"✏️ Manual category · {com_txt} · detected: {ai}")
+            st.markdown(f'<p class="status-line">{text}</p>', unsafe_allow_html=True)
     
-    # ekstrak untuk Category yang dipilih hanya sekali (hasil disimpan, ikut commodity + category)
-    raw_key = f"{com}|{chosen}"
-    if raw_key not in job["raw"]:
-        holder = st.empty()
-        pb = holder.progress(0, text=f"Extracting as {chosen}...")
-        try:
-            new_raw = call_model(build_prompt_any(chosen, job["mpn_instruction"], job["pdf_text"], com), pb)
-            if new_raw:
-                new_raw.pop("Category", None)
-                job["raw"][raw_key] = new_raw
-        except Exception as e:
-            st.error(f"Error Happened!: {e}")
-        holder.empty()
+        # ekstrak untuk Category yang dipilih hanya sekali (hasil disimpan, ikut commodity + category)
+        raw_key = f"{com}|{chosen}"
+        if raw_key not in job["raw"]:
+            holder = st.empty()
+            pb = holder.progress(0, text=f"Extracting as {chosen}...")
+            try:
+                new_raw = call_model(build_prompt_any(chosen, job["mpn_instruction"], job["pdf_text"], com), pb)
+                if new_raw:
+                    new_raw.pop("Category", None)
+                    job["raw"][raw_key] = new_raw
+            except Exception as e:
+                st.error(f"Error Happened!: {e}")
+            holder.empty()
     
-    if raw_key in job["raw"]:
-        try:
-            render_results(job, com, chosen, job["raw"][raw_key], dms_df)
-        except Exception as e:
-            st.error(f"Error Happened!: {e}")
+        if raw_key in job["raw"]:
+            try:
+                render_results(job, com, chosen, job["raw"][raw_key], dms_df)
+            except Exception as e:
+                st.error(f"Error Happened!: {e}")
