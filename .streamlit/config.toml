@@ -1,2 +1,47 @@
+# Datasheet Analyzer — theme (R&S / SYSTRAN-style)
+# Both palettes live here so Streamlit's own widgets (dropdowns, hovers,
+# dataframes, popovers) always use colours that match the active mode.
+# Switch mode from the top-right menu: Settings > Theme (Light / Dark / System).
+
 [theme]
-primaryColor = "#2563eb"
+font = "Quicksand:https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
+headingFont = "Quicksand:https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap"
+baseFontSize = 15
+baseRadius = "8px"
+buttonRadius = "8px"
+showWidgetBorder = true
+showSidebarBorder = true
+
+[theme.light]
+primaryColor = "#3D4DA0"
+backgroundColor = "#F7F8FA"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#2B2F38"
+linkColor = "#3D4DA0"
+borderColor = "#E3E5EA"
+dataframeBorderColor = "#E3E5EA"
+dataframeHeaderBackgroundColor = "#F1F2F5"
+codeBackgroundColor = "#F1F2F5"
+
+[theme.light.sidebar]
+backgroundColor = "#F1F2F4"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#2B2F38"
+borderColor = "#E3E5EA"
+
+[theme.dark]
+primaryColor = "#8E9CF0"
+backgroundColor = "#121418"
+secondaryBackgroundColor = "#1E222A"
+textColor = "#E6E8EE"
+linkColor = "#9AA7F2"
+borderColor = "#2C313B"
+dataframeBorderColor = "#2C313B"
+dataframeHeaderBackgroundColor = "#1E222A"
+codeBackgroundColor = "#1E222A"
+
+[theme.dark.sidebar]
+backgroundColor = "#171A20"
+secondaryBackgroundColor = "#1E222A"
+textColor = "#E6E8EE"
+borderColor = "#2C313B"
