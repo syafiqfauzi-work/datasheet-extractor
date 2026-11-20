@@ -384,6 +384,9 @@ def render_summary(designation_text, manufacturer_text, cg_text, asi_result, mpn
     if rule_applies:
         letter, meaning, _ = ASI_TEXT.get(asi_result["overall"], ("-", "Undetermined", None))
         css_class = _ASI_CLASS.get(asi_result["overall"])
+        if asi_result.get("tht_override"):   # THT part: U (SMD alternative exists) / V (none)
+            letter = asi_result["tht_override"]
+            meaning = {"U": "Intended for phase out", "V": "Not recommended for new designs"}[letter]
     else:
         letter, meaning = "N/A", na_text
     cells = [
