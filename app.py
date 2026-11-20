@@ -27,6 +27,8 @@ from rules_l import resolve_manufacturer_l, determine_cg_l, cg_label
 from categories_c import snap_pick_lists_c
 from rules_c import resolve_manufacturer_c, determine_cg_c, cg_label_c, clean_designation_c
 from processability import apply_processability
+from tht_alternative import (determine_tht_asi, specs_from_extracted, apply_tht_override,
+                             render_tht_alternatives)
 
 # --- 1. SETTING TAJUK WEB ---
 st.set_page_config(page_title="Datasheet Analyzer", page_icon="📄", layout="wide", initial_sidebar_state="auto")
@@ -127,6 +129,18 @@ def call_model(full_prompt, progress_bar):
                 st.error(f"API Error: {e}")
                 st.stop()
     return None
+
+# --- PANGGILAN AI RINGKAS UNTUK CADANGAN ALTERNATIVE (pulangkan teks; gagal = senarai kosong) ---
+def call_model_text(prompt):
+    try:
+        api_keys = st.secrets["GEMINI_API_KEY"].split(",")
+        genai.configure(api_key=random.choice(api_keys).strip())
+        model = genai.GenerativeModel('gemini-3.5-flash-lite')
+        response = model.generate_content(
+            prompt, generation_config={"temperature": 0.0, "response_mime_type": "application/json"})
+        return response.text
+    except Exception:
+        return "[]"
 
 # --- BACA PDF ---
 def read_pdfs(uploaded_file, spec_file, progress_bar):
@@ -353,6 +367,22 @@ def render_results(job, com, category, raw, dms_df):
     # --- ASI DETERMINATION (peraturan ikut Commodity Group; guna nilai akhir selepas semua override) ---
     asi_result = determine_asi_for_cg(cg_code, extracted_data, designation_text, manufacturer_text, pdf_text,
                                       file_names, category, mpn=target_mpn)
+
+    # --- THT OVERRIDE (RG): ASI terus U (ada alternatif SMD) atau V (tiada alternatif) ---
+    tht = None
+    if category == RESISTOR and cg_code == "RG":
+        tht_cache = job.setdefault("tht", {})          # cache dalam job: Reset kosongkan sekali
+        tht_key = f"{com}|{category}"
+        if tht_key not in tht_cache:
+            orig_specs = specs_from_extracted(extracted_data, designation_text, manufacturer_text, target_mpn)
+            with st.spinner("THT part: searching SMD alternatives..."):
+                tht_cache[tht_key] = determine_tht_asi(orig_specs, dms_df=dms_df, llm=call_model_text)
+        tht = tht_cache[tht_key]
+        if tht["is_tht"]:
+            asi_result = apply_tht_override(asi_result, tht)
+        else:
+            tht = None
+
     if category == "RF Attenuator" and asi_result.get("rt"):
         designation_text = rt_designation(asi_result["rt"]) or "N/A"
     elif category != RESISTOR and not is_c:   # C*: designation format of the former C* analyzer
@@ -439,7 +469,11 @@ def render_results(job, com, category, raw, dms_df):
         for w in proc_warnings:
             callout("warning", w)
     with tab4: st.table(md_safe(build_table(keys_techn_active, extracted_data)))
-    with tab5: render_alternatives(extracted_data, designation_text, manufacturer_text, asi_result, dms_df, target_mpn, cg_code)
+    with tab5:
+        if tht:   # THT: senarai alternatif SMD ikut ASI rule
+            render_tht_alternatives(tht)
+        else:
+            render_alternatives(extracted_data, designation_text, manufacturer_text, asi_result, dms_df, target_mpn, cg_code)
     if not (is_l or is_c):
         with tabs[5]: render_duplicate_check(dms_df, target_mpn, extracted_data, designation_text, cg_code)
             
