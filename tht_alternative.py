@@ -409,6 +409,7 @@ def apply_tht_override(asi_result: dict, tht: dict) -> dict:
         if k in res and isinstance(res[k], str):
             res[k] = tht["reason"]
     res.setdefault("reason", tht["reason"])
+    res["overall"] = 2          # = U in asi_rules (red badge / error callout)
     res["tht_override"] = code
     return res
 
